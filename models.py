@@ -1,9 +1,13 @@
 import uuid
-from sqlalchemy import UUID, text
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-class Base(DeclarativeBase):
+from sqlalchemy import UUID, text
+from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
+                            mapped_column)
+
+
+class Base(MappedAsDataclass, DeclarativeBase):
     pass
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -11,7 +15,7 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         primary_key=True,
-        server_default=text("gen_random_uuid()"), 
+        server_default=text("gen_random_uuid()"),
         unique=True,
         nullable=False,
     )
