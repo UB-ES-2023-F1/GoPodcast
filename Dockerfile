@@ -12,4 +12,4 @@ ENV GIT_HASH=${GIT_HASH:-dev}
 RUN pip install -r requirements.txt --no-cache-dir
 
 # 5. Run the app?
-CMD [pip app.py]
+CMD ["python app.py"]
