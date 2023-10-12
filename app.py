@@ -1,13 +1,20 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import sessionmaker
+
 import os
 import re
 
+from database import engine  # Import the SQLAlchemy engine
 from models import User
 
+
 app = Flask(__name__)
-#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRES_URL')
-#db = SQLAlchemy(app)
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRES_URL')
+# db = SQLAlchemy(app)
+
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 @app.route('/')
@@ -15,7 +22,7 @@ def hello_world():  # put application's code here
     return 'Hello World!' 
 
 
-@app.post("/user")
+@app.post('/user')
 def create_user():
     data_dict = request.get_json()
 
@@ -27,14 +34,14 @@ def create_user():
     if not username or not email:
         return jsonify({'mensaje': 'Se requiere introducir usuario y contraseña'}), 400
 
-    '''# Check if the user with the same username or email already exists
-    existing_user = User.query.filter_by(username=username).first()
+    # Check if the user with the same username or email already exists
+    existing_user = session.query(User).filter_by(username=username).first()
     if existing_user:
         return jsonify({'mensaje': 'Nombre de usuario ya existente'}), 400
 
-    existing_email = User.query.filter_by(email=email).first()
+    existing_email = session.query(User).filter_by(email=email).first()
     if existing_email:
-        return jsonify({'mensaje': 'Dirección email ya existente'}), 400'''
+        return jsonify({'mensaje': 'Dirección email ya existente'}), 400
 
     # check if email is valid
     email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
@@ -50,12 +57,11 @@ def create_user():
 
     try:
         # Create a new user
-        # new_user = User(username=username, email=email)
-        # db.session.add(new_user)
-        # db.session.commit()
-        pass
+        new_user = User(username=username, email=email)
+        session.add(new_user)
+        session.commit()
     except Exception as e:
-        db.session.rollback()
+        session.rollback()
         return f'Error: {str(e)}'
 
     return jsonify({'mensaje': 'Usuario '+username+' registrado correctamente'}), 201
