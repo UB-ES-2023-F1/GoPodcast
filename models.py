@@ -1,15 +1,15 @@
 import uuid
 
 from sqlalchemy import UUID, text
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
                             mapped_column)
+
+from database import Base
 
 
 # class Base(MappedAsDataclass, DeclarativeBase):
 #     pass
 
-Base = declarative_base()
 
 class User(Base):
     __tablename__ = 'user'
