@@ -13,4 +13,4 @@ RUN pip install -r src/requirements.txt --no-cache-dir
 
 # 5. Run the app?
 WORKDIR /src
-CMD ["ls"]
+CMD ["python3 app.py"]
