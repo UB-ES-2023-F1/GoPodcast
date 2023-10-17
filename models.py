@@ -21,5 +21,6 @@ class User(Base):
         nullable=False,
     )
     email: Mapped[str]
+    username: Mapped[str]
     password: Mapped[str]
     verified: Mapped[bool] = mapped_column(default=False)
