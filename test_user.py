@@ -11,9 +11,6 @@ def client():
 
 
 def test_create_user(client):
-    # initialize db
-    response = client.get('http://127.0.0.1:5000/init_db')
-
     ###############
     # Usuario correcto
     ###############
