@@ -12,4 +12,5 @@ ENV GIT_HASH=${GIT_HASH:-dev}
 RUN pip install -r src/requirements.txt --no-cache-dir
 
 # 5. Run the app?
-CMD ["python app.py"]
+WORKDIR /src
+CMD ["python3", "app.py"]
