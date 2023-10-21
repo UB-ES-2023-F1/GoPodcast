@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from sqlalchemy.orm import Session
 from database import engine
 from models import User, Base
+from werkzeug.security import generate_password_hash
 
 import re
 
@@ -54,7 +55,7 @@ def create_user():
             return jsonify({'mensaje': 'Dirección email ya existente'}), 400
 
         # Create a new user
-        new_user = User(username=username, email=email, password=password)
+        new_user = User(username=username, email=email, password=generate_password_hash(password))
         session.add(new_user)
         session.commit()
 
