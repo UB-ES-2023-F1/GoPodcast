@@ -1,6 +1,11 @@
+import os
 import re
+from datetime import datetime, timedelta, timezone
 
 from flask import Flask, jsonify, request
+from flask_jwt_extended import (JWTManager, create_access_token, get_jwt,
+                                get_jwt_identity, jwt_required,
+                                set_access_cookies, unset_jwt_cookies)
 from sqlalchemy.orm import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -8,6 +13,11 @@ from database import engine
 from models import Base, User
 
 app = Flask(__name__)
+app.config['JWT_TOKEN_LOCATION'] = ['cookies', 'headers']
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+jwt = JWTManager(app)
 
 
 @app.route('/')
@@ -77,6 +87,17 @@ def login_user():
         user = session.query(User).filter_by(email=email).first()
         if not user or not check_password_hash(user.password, password):
             return jsonify({'success': False, 'error': 'Login details are incorrect'}), 401
+        access_token = create_access_token(identity=user.id)
+        resp = jsonify({'success': True})
+        set_access_cookies(resp, access_token)
+        return resp, 200
+
+
+@app.post("/logout")
+def logout():
+    response = jsonify({'success': True})
+    unset_jwt_cookies(response)
+    return response
         return jsonify({'success': True}), 200
 
 
