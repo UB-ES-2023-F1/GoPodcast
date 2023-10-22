@@ -112,7 +112,13 @@ def logout():
     response = jsonify({'success': True})
     unset_jwt_cookies(response)
     return response
-        return jsonify({'success': True}), 200
+
+
+@app.get('/protected')
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    return jsonify(logged_in_as=current_user), 200
 
 
 if __name__ == '__main__':
