@@ -203,3 +203,35 @@ def test_create_user(client):
                          'como mínimo 6 caracteres, entre los cuales debe '
                          'haber almenos una letra, un número y una mayúscula'}
     assert response.get_json() == expected_response
+
+
+def test_auth(client):
+
+    data = {
+        "username": "test",
+        "email": "test@example.com",
+        "password": "Test1234"
+    }
+
+    response = client.post('/user', json=data)
+
+    # Wrong login details
+    response = client.post('/login', json={"email": "test@example.com",
+                                           "password": "wrong"})
+    assert response.status_code == 401
+
+    # Correct login details
+    response = client.post('/login', json=data)
+    assert response.status_code == 200
+
+    # Access to protected route with auth
+    response = client.get('/protected')
+    assert response.status_code == 200
+
+    # Logout
+    response = client.post('/logout')
+    assert response.status_code == 200
+
+    # Access to protected route without auth
+    response = client.get('/protected')
+    assert response.status_code == 401
