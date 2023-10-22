@@ -2,17 +2,22 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_jwt_extended import (JWTManager, create_access_token, get_jwt,
                                 get_jwt_identity, jwt_required,
                                 set_access_cookies, unset_jwt_cookies)
-from sqlalchemy.orm import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from database import engine
-from models import Base, User
+from models import User, db
 
 app = Flask(__name__)
+load_dotenv(dotenv_path='.env')
+if (app.config["TESTING"]):
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('POSTGRES_TEST_URL')
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('POSTGRES_URL')
+db.init_app(app)
 app.config['JWT_TOKEN_LOCATION'] = ['cookies', 'headers']
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
@@ -39,13 +44,6 @@ def hello_world():  # put application's code here
     return 'Hello World!'
 
 
-@app.route('/init_db')
-def init_db():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    return "DB initialized"
-
-
 @app.post('/user')
 def create_user():
     data_dict = request.get_json()
@@ -69,26 +67,23 @@ def create_user():
                                    'como mínimo 6 caracteres, entre los cuales debe '
                                    'haber almenos una letra, un número y una mayúscula'}), 400
 
-    with Session(engine) as session:
-        # Check if the user with the same username or email already exists
-        existing_user = session.query(
-            User).filter_by(username=username).first()
-        if existing_user:
-            return jsonify({'mensaje': 'Nombre de usuario ya existente'}), 400
+    # Check if the user with the same username or email already exists
+    existing_user = db.session.query(
+        User).filter_by(username=username).first()
+    if existing_user:
+        return jsonify({'mensaje': 'Nombre de usuario ya existente'}), 400
 
-        existing_email = session.query(User).filter_by(email=email).first()
-        if existing_email:
-            return jsonify({'mensaje': 'Dirección email ya existente'}), 400
+    existing_email = db.session.query(User).filter_by(email=email).first()
+    if existing_email:
+        return jsonify({'mensaje': 'Dirección email ya existente'}), 400
 
-        # Create a new user
-        new_user = User(username=username, email=email,
-                        password=generate_password_hash(password))
-        session.add(new_user)
-        session.commit()
+    # Create a new user
+    new_user = User(username=username, email=email,
+                    password=generate_password_hash(password))
+    db.session.add(new_user)
+    db.session.commit()
 
-        return jsonify({'mensaje': 'Usuario '+username+' registrado correctamente'}), 201
-
-    return jsonify({'mensaje': 'Error'}), 400
+    return jsonify({'mensaje': 'Usuario '+username+' registrado correctamente'}), 201
 
 
 @app.post('/login')
@@ -97,14 +92,13 @@ def login_user():
     email = data['email']
     password = data['password']
 
-    with Session(engine) as session:
-        user = session.query(User).filter_by(email=email).first()
-        if not user or not check_password_hash(user.password, password):
-            return jsonify({'success': False, 'error': 'Login details are incorrect'}), 401
-        access_token = create_access_token(identity=user.id)
-        resp = jsonify({'success': True})
-        set_access_cookies(resp, access_token)
-        return resp, 200
+    user = db.session.query(User).filter_by(email=email).first()
+    if not user or not check_password_hash(user.password, password):
+        return jsonify({'success': False, 'error': 'Login details are incorrect'}), 401
+    access_token = create_access_token(identity=user.id)
+    resp = jsonify({'success': True})
+    set_access_cookies(resp, access_token)
+    return resp, 200
 
 
 @app.post("/logout")
