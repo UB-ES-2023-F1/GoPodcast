@@ -59,11 +59,8 @@ def create_user():
         session.commit()
 
         return jsonify({'mensaje': 'Usuario '+username+' registrado correctamente'}), 201
-
-    
+     
     return jsonify({'mensaje': 'Error'}), 400
-    
- 
 
 
 if __name__ == '__main__':
