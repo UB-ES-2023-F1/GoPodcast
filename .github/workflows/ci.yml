@@ -11,6 +11,7 @@ on:
     branches: [ "main", "dev", "pre" ]
   pull_request:
     branches: [ "main", "dev", "pre" ]
+  workflow_dispatch:
 jobs:
   run-lint:
     runs-on: ubuntu-latest
