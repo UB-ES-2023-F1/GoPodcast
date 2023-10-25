@@ -30,6 +30,7 @@ jobs:
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Fix Lint Errors
+        run: pip install black
         run: black ./*.py
 
   install-dependencies:
