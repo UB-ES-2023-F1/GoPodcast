@@ -1,7 +1,8 @@
 import uuid
 from flask_sqlalchemy import SQLAlchemy
 
-from sqlalchemy import UUID, text, Binary, ForeignKey
+from sqlalchemy import UUID, text, ForeignKey
+from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
                             mapped_column)
 
@@ -37,7 +38,7 @@ class Podcast(Base):
         unique=True,
         nullable=False,
     )
-    cover: Mapped[Binary]
+    cover: Mapped[bytes] = mapped_column(BYTEA)
     name: Mapped[str] = mapped_column(unique=True)
     description: Mapped[str]
     id_author: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
