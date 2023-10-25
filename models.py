@@ -1,4 +1,5 @@
 import uuid
+from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import UUID, text, Binary, ForeignKey
 from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
@@ -40,3 +41,6 @@ class Podcast(Base):
     name: Mapped[str] = mapped_column(unique=True)
     description: Mapped[str]
     id_author: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
+
+
+db = SQLAlchemy(model_class=Base)
