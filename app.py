@@ -84,6 +84,8 @@ def create_app(testing=False):
         db.session.commit()
 
         return jsonify({'mensaje': 'Usuario '+username+' registrado correctamente'}), 201
+     
+    return jsonify({'mensaje': 'Error'}), 400
 
     @app.post('/login')
     def login_user():
@@ -112,7 +114,7 @@ def create_app(testing=False):
         return jsonify(logged_in_as=current_user), 200
 
     return app
-
+  
 
 if __name__ == '__main__':
     app = create_app()
