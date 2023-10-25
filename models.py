@@ -1,4 +1,5 @@
 import uuid
+from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import UUID, text
 from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
@@ -24,3 +25,6 @@ class User(Base):
     username: Mapped[str]
     password: Mapped[str]
     verified: Mapped[bool] = mapped_column(default=False)
+
+
+db = SQLAlchemy(model_class=Base)

@@ -1,6 +1,6 @@
 flask
 python-dotenv
-sqlalchemy
+flask-sqlalchemy
 psycopg2-binary
-flask_sqlalchemy
 pytest
+flask-jwt-extended
