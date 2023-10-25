@@ -29,6 +29,8 @@ jobs:
           VALIDATE_YAML_YamlLint: true
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fix Lint Errors
+        run: black *.py
 
   install-dependencies:
     runs-on: ubuntu-latest
