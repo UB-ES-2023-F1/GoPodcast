@@ -4,3 +4,4 @@ flask-sqlalchemy
 psycopg2-binary
 pytest
 flask-jwt-extended
+flask-cors

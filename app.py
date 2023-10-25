@@ -8,6 +8,7 @@ from flask_jwt_extended import (JWTManager, create_access_token, get_jwt,
                                 get_jwt_identity, jwt_required,
                                 set_access_cookies, unset_jwt_cookies)
 from werkzeug.security import check_password_hash, generate_password_hash
+from flask_cors import CORS
 
 from models import User, db
 
@@ -25,6 +26,7 @@ def create_app(testing=False):
     app.config['JWT_COOKIE_CSRF_PROTECT'] = False
     app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+    CORS(app)
     jwt = JWTManager(app)
 
     @app.after_request
