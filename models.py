@@ -45,8 +45,8 @@ class Podcast(Base):
     description: Mapped[str]
     id_author: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
 
-class Episodes(Base):
-    __tablename__ = 'episodes'
+class Episode(Base):
+    __tablename__ = 'episode'
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
