@@ -72,9 +72,7 @@ class Section(Base):
     id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episodes.id"))
 
     # create a composite primary key
-    __table_args__ = (
-        PrimaryKeyConstraint('title', 'id_episode')
-    )
+    __table_args__ = (PrimaryKeyConstraint('title', 'id_episode'),)
 
 class User_episode(Base):
     '''
@@ -88,9 +86,7 @@ class User_episode(Base):
     current_min: Mapped[int] # represents seconds
 
     # create a composite primary key
-    __table_args__ = (
-        PrimaryKeyConstraint('id_episode', 'id_user')
-    )
+    __table_args__ = (PrimaryKeyConstraint('id_episode', 'id_user'),)
 
 
 db = SQLAlchemy(model_class=Base)
