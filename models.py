@@ -69,7 +69,7 @@ class Section(Base):
     end: Mapped[int]
     title: Mapped[str]
     description: Mapped[str]
-    id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episodes.id"))
+    id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episode.id"))
 
     # create a composite primary key
     __table_args__ = (PrimaryKeyConstraint('title', 'id_episode'),)
@@ -81,7 +81,7 @@ class User_episode(Base):
     '''
     __tablename__ = 'user_episode'
 
-    id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episodes.id"))
+    id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episode.id"))
     id_user: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     current_min: Mapped[int] # represents seconds
 
