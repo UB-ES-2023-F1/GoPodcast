@@ -4,11 +4,11 @@ from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from flask_jwt_extended import (JWTManager, create_access_token, get_jwt,
                                 get_jwt_identity, jwt_required,
                                 set_access_cookies, unset_jwt_cookies)
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask_cors import CORS
 
 from models import User, db
 
@@ -26,8 +26,9 @@ def create_app(testing=False):
     app.config['JWT_COOKIE_CSRF_PROTECT'] = False
     app.config["JWT_SECRET_KEY"] = os.getenv('JWT_SECRET_KEY')
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-    CORS(app)
-    jwt = JWTManager(app)
+    CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173",
+         os.getenv('FRONTEND_URL')], supports_credentials=True)
+    JWTManager(app)
 
     @app.after_request
     def refresh_expiring_jwts(response):
@@ -114,7 +115,7 @@ def create_app(testing=False):
         return jsonify(logged_in_as=current_user), 200
 
     return app
-  
+
 
 if __name__ == '__main__':
     app = create_app()
