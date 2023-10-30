@@ -7,7 +7,7 @@ import re
 
 
 app = Flask(__name__)
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRES_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('POSTGRES_URL')
 # db = SQLAlchemy(app)
 
 @app.route('/')
