@@ -39,4 +39,5 @@ jobs:
           pip freeze > requirements.txt
       - name: Run end-to-end tests
         run: |
+          pip install pytest
           pytest
