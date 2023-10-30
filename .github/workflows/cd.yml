@@ -1,5 +1,4 @@
 ---
-
 # Docs for the Azure Web Apps Deploy action: 
 # https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: 
@@ -76,3 +75,4 @@ jobs:
           slot-name: 'Production'
           publish-profile: 
             ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_47BD876E8B804CAE99183DD431C3F529 }}
+---
