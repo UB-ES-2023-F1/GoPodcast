@@ -38,4 +38,4 @@ jobs:
           python -m pip install --upgrade pip
           pip freeze > requirements.txt
       - name: Run end-to-end tests
-        run: python -m pytest
+        run: python3 -m pytest
