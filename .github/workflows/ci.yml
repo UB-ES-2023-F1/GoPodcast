@@ -31,7 +31,7 @@ jobs:
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  install-dependencies:
+  run-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
