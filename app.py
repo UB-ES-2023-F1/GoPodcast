@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify
 from sqlalchemy.orm import Session
 from database import engine
 from models import User, Base
-
-import re
+import os
 
 
 app = Flask(__name__)
