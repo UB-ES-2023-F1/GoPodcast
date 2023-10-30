@@ -1,7 +1,5 @@
----
 rules:
   document-end: disable
   document-start:
     level: warning
     present: true
----
