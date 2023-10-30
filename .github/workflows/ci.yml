@@ -33,12 +33,20 @@ jobs:
   install-dependencies:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+    
       - name: Install requirements
         run: |
           python -m pip install --upgrade pip
           pip freeze > requirements.txt
+          
       - name: Run ls
         run: ls
+        
       - name: Run end-to-end tests
         run: |
           pip install pytest
