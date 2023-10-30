@@ -33,10 +33,12 @@ jobs:
   install-dependencies:
     runs-on: ubuntu-latest
     steps:
-      - name: Run tests
+      - name: Install requirements
         run: |
           python -m pip install --upgrade pip
           pip freeze > requirements.txt
+      - name: Run ls
+        run: ls
       - name: Run end-to-end tests
         run: |
           pip install pytest
