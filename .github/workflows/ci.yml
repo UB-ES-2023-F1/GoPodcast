@@ -29,9 +29,6 @@ jobs:
           VALIDATE_YAML_YamlLint: true
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Fix Lint Errors
-        run: pip install black
-        run: black ./*.py
 
   install-dependencies:
     runs-on: ubuntu-latest
@@ -40,5 +37,5 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip freeze > requirements.txt
-      # - name: Run end-to-end tests
-        # run: pytest
+      - name: Run end-to-end tests
+        run: pytest
