@@ -14,6 +14,36 @@ def app():
     with app.app_context():
         db.drop_all()
 
+def test_post_episode(app):
+    with app.app_context():
+        user = User(
+            email="carlo@gmail.com",
+            username="Carl Sagan",
+            password=generate_password_hash("Test1234"),
+            verified=True
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    client = app.test_client()
+
+    data = {
+        "name": "Nice podcast",
+        "description": "Very nice podcast!",
+        "cover": (b"", "test.jpg", "image/jpeg")
+    }
+
+    # Unauthenticated
+    response = client.post("/podcasts", data=data)
+    assert response.status_code == 401
+
+    # Authenticated
+    response = client.post('/login', json={"email": "carlo@gmail.com",
+                                           "password": "Test1234"})
+    assert response.status_code == 200
+    response = client.post("/podcasts", data=data)
+    assert response.status_code == 201
+
 
 def test_post_episode(app):
     with app.app_context():

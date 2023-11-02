@@ -114,6 +114,21 @@ def create_app(testing=False):
     def protected():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
+    
+    @app.post('/podcasts')
+    @jwt_required()
+    def post_podcast():
+        current_user_id = get_jwt_identity()
+
+        cover = request.files.get('cover').read()
+        name = request.form.get('name')
+        description = request.form.get('description')
+        podcast = Podcast(cover=cover, name=name,
+                          description=description, id_author=current_user_id)
+        db.session.add(podcast)
+        db.session.commit()
+
+        return jsonify(success=True, id=podcast.id), 201
 
     @app.post('/podcasts/<id_podcast>/episodes')
     @jwt_required()
