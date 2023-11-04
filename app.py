@@ -114,6 +114,33 @@ def create_app(testing=False):
     def protected():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
+    
+    @app.post('/podcasts')
+    @jwt_required()
+    def post_podcast():
+        current_user_id = get_jwt_identity()
+
+        cover = request.files.get('cover').read()
+        name = request.form.get('name')
+        description = request.form.get('description')
+
+        if name == "":
+            return jsonify({"mensaje": "name field is mandatory"}), 400
+
+        filtered_podcast = db.session.query(Podcast).filter_by(
+            id_author = current_user_id,
+            name = name
+        ).first()
+
+        if filtered_podcast is not None:
+            return jsonify({"mensaje": f"This user already has a podcast with the name: {name}"}), 400
+
+        podcast = Podcast(cover=cover, name=name,
+                          description=description, id_author=current_user_id)
+        db.session.add(podcast)
+        db.session.commit()
+
+        return jsonify(success=True, id=podcast.id), 201
 
     @app.post('/podcasts/<id_podcast>/episodes')
     @jwt_required()
@@ -126,6 +153,19 @@ def create_app(testing=False):
         audio = request.files.get('audio').read()
         title = request.form.get('title')
         description = request.form.get('description')
+
+        if title == "":
+            return jsonify({"mensaje": "title field is mandatory"}), 400
+
+        filtered_episode = db.session.query(Episode).filter_by(
+            id_podcast = id_podcast,
+            title = title
+        ).first()
+
+        if filtered_episode is not None:
+            return jsonify({"mensaje": f"This podcast already has an episode with the title: {title}"}), 400
+
+
         episode = Episode(audio=audio, title=title,
                           description=description, id_podcast=id_podcast)
         db.session.add(episode)
