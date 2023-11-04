@@ -42,6 +42,7 @@ class Podcast(Base):
     )
     cover: Mapped[bytes] = mapped_column(BYTEA)
     name: Mapped[str] = mapped_column(unique=True)
+    summary: Mapped[str]
     description: Mapped[str]
     id_author: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
 

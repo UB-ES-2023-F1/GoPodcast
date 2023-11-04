@@ -30,6 +30,7 @@ def test_post_podcast(app):
     data = {
         "name": "Nice podcast",
         "description": "Very nice podcast!",
+        "summary": "breve resumen aquí",
         "cover": (b"", "test.jpg", "image/jpeg")
     }
 
@@ -49,6 +50,7 @@ def test_post_podcast(app):
     data2 = {
         "name": "Nice podcast",
         "description": "Another very good podcast!",
+        "summary": "otro breve resumen",
         "cover": (b"", "test.jpg", "image/jpeg")
     }
 
@@ -62,6 +64,7 @@ def test_post_podcast(app):
     data3 = {
         "name": "",
         "description": "Another very good podcast!",
+        "summary": "otro breve resumen",
         "cover": (b"", "test.jpg", "image/jpeg")
     }
 
@@ -85,6 +88,7 @@ def test_post_episode(app):
         podcast = Podcast(
             cover=b"",
             name="podcast",
+            summary="summary",
             description="description",
             id_author=user.id
         )
