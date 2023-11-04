@@ -122,6 +122,7 @@ def create_app(testing=False):
 
         cover = request.files.get('cover').read()
         name = request.form.get('name')
+        summary = request.form.get('summary')
         description = request.form.get('description')
 
         if name == "":
@@ -135,7 +136,7 @@ def create_app(testing=False):
         if filtered_podcast is not None:
             return jsonify({"mensaje": f"This user already has a podcast with the name: {name}"}), 400
 
-        podcast = Podcast(cover=cover, name=name,
+        podcast = Podcast(cover=cover, name=name, summary=summary,
                           description=description, id_author=current_user_id)
         db.session.add(podcast)
         db.session.commit()
