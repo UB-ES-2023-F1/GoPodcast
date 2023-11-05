@@ -84,7 +84,7 @@ class User_episode(Base):
 
     id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episode.id"))
     id_user: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
-    current_min: Mapped[int] # represents seconds
+    current_sec: Mapped[int] # represents seconds
 
     # create a composite primary key
     __table_args__ = (PrimaryKeyConstraint('id_episode', 'id_user'),)
