@@ -11,7 +11,7 @@ from flask_jwt_extended import (JWTManager, create_access_token, get_jwt,
 from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import Episode, Podcast, User, db
+from models import Episode, Podcast, User, Section, User_episode, db
 
 
 def create_app(testing=False):
@@ -173,6 +173,60 @@ def create_app(testing=False):
         db.session.commit()
 
         return jsonify(success=True, id=episode.id), 201
+    
+    @app.put('/update_current_sec/<id_episode>')
+    @jwt_required()
+    def update_current_sec(id_episode):
+        current_user_id = get_jwt_identity()
+
+        new_current_sec = request.form.get('current_sec')
+
+        if new_current_sec is not None:
+            episode = db.session.scalars(
+                select(Episode.id).where(Episode.id == id_episode)).first()
+            if not episode:
+                return jsonify({"error": "Episode not found"}), 404
+            
+            user_episode = db.session.query(User_episode).filter_by(
+                id_episode=id_episode,
+                id_user=current_user_id
+            ).first()
+
+            if user_episode:
+                user_episode.current_sec = new_current_sec
+                db.session.commit()
+                return jsonify({"message": "Current minute updated successfully"}), 201
+            else: #first time user plays the episode
+                new_user_episode = User_episode(id_episode=id_episode,
+                          id_user=current_user_id, current_sec=new_current_sec)
+                db.session.add(new_user_episode)
+                db.session.commit()
+                return jsonify({"message": "Current minute saved for new episode played"}), 201
+
+        else:
+            return jsonify({"error": "Specify the current minute"}), 400
+          
+    @app.get('/get_current_sec/<id_episode>')
+    @jwt_required()
+    def get_current_sec(id_episode):
+        current_user_id = get_jwt_identity()
+
+        episode = db.session.scalars(
+            select(Episode.id).where(Episode.id == id_episode)).first()
+        if not episode:
+            return jsonify({"error": "Episode not found"}), 404
+
+        user_episode = db.session.query(User_episode).filter_by(
+            id_episode=id_episode,
+            id_user=current_user_id
+        ).first()
+
+        if user_episode:
+            return jsonify({"minute": user_episode.current_sec}), 201
+        else: #first time user plays the episode
+            return jsonify({"minute": 0}), 201
+
+
 
     return app
 
