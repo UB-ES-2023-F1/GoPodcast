@@ -4,7 +4,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request, send_file, Response
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager,
@@ -44,6 +44,13 @@ def create_app(testing=False):
         supports_credentials=True,
     )
     JWTManager(app)
+
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            res = Response()
+            res.headers['X-Content-Type-Options'] = '*'
+            return res
 
     @app.after_request
     def refresh_expiring_jwts(response):
