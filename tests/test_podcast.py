@@ -2,7 +2,7 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from models import Podcast, User, Episode, User_episode, db
+from models import Episode, Podcast, User, User_episode, db
 
 
 @pytest.fixture
@@ -14,13 +14,14 @@ def app():
     with app.app_context():
         db.drop_all()
 
+
 def test_post_podcast(app):
     with app.app_context():
         user = User(
             email="carlo@gmail.com",
             username="Carl Sagan",
             password=generate_password_hash("Test1234"),
-            verified=True
+            verified=True,
         )
         db.session.add(user)
         db.session.commit()
@@ -31,7 +32,7 @@ def test_post_podcast(app):
         "name": "Nice podcast",
         "description": "Very nice podcast!",
         "summary": "breve resumen aquí",
-        "cover": (b"", "test.jpg", "image/jpeg")
+        "cover": (b"", "test.jpg", "image/jpeg"),
     }
 
     # Unauthenticated
@@ -39,8 +40,9 @@ def test_post_podcast(app):
     assert response.status_code == 401
 
     # Authenticated
-    response = client.post('/login', json={"email": "carlo@gmail.com",
-                                           "password": "Test1234"})
+    response = client.post(
+        "/login", json={"email": "carlo@gmail.com", "password": "Test1234"}
+    )
     assert response.status_code == 200
 
     response = client.post("/podcasts", data=data)
@@ -51,13 +53,14 @@ def test_post_podcast(app):
         "name": "Nice podcast",
         "description": "Another very good podcast!",
         "summary": "otro breve resumen",
-        "cover": (b"", "test.jpg", "image/jpeg")
+        "cover": (b"", "test.jpg", "image/jpeg"),
     }
 
     response = client.post("/podcasts", data=data2)
     assert response.status_code == 400
     expected_response = {
-        "mensaje": f"This user already has a podcast with the name: {data['name']}"}
+        "mensaje": f"This user already has a podcast with the name: {data['name']}"
+    }
     assert response.get_json() == expected_response
 
     # Podcast with no given name
@@ -65,13 +68,12 @@ def test_post_podcast(app):
         "name": "",
         "description": "Another very good podcast!",
         "summary": "otro breve resumen",
-        "cover": (b"", "test.jpg", "image/jpeg")
+        "cover": (b"", "test.jpg", "image/jpeg"),
     }
 
     response = client.post("/podcasts", data=data3)
     assert response.status_code == 400
-    expected_response = {
-        "mensaje": "name field is mandatory"}
+    expected_response = {"mensaje": "name field is mandatory"}
     assert response.get_json() == expected_response
 
 
@@ -81,7 +83,7 @@ def test_post_episode(app):
             email="test@example.com",
             username="test",
             password=generate_password_hash("Test1234"),
-            verified=True
+            verified=True,
         )
         db.session.add(user)
         db.session.commit()
@@ -90,7 +92,7 @@ def test_post_episode(app):
             name="podcast",
             summary="summary",
             description="description",
-            id_author=user.id
+            id_author=user.id,
         )
         db.session.add(podcast)
         db.session.commit()
@@ -98,7 +100,7 @@ def test_post_episode(app):
     data = {
         "title": "title",
         "description": "description",
-        "audio": (b"", "test.mp3", "audio/mpeg")
+        "audio": (b"", "test.mp3", "audio/mpeg"),
     }
     client = app.test_client()
 
@@ -107,8 +109,9 @@ def test_post_episode(app):
     assert response.status_code == 401
 
     # Authenticated
-    response = client.post('/login', json={"email": "test@example.com",
-                                           "password": "Test1234"})
+    response = client.post(
+        "/login", json={"email": "test@example.com", "password": "Test1234"}
+    )
     assert response.status_code == 200
     response = client.post(f"/podcasts/{id_podcast}/episodes", data=data)
     assert response.status_code == 201
@@ -117,27 +120,28 @@ def test_post_episode(app):
     data2 = {
         "title": "title",
         "description": "description 2",
-        "audio": (b"", "test.mp3", "audio/mpeg")
+        "audio": (b"", "test.mp3", "audio/mpeg"),
     }
 
     response = client.post(f"/podcasts/{id_podcast}/episodes", data=data2)
     assert response.status_code == 400
     expected_response = {
-        "mensaje": f"This podcast already has an episode with the title: {data2['title']}"}
+        "mensaje": f"This podcast already has an episode with the title: {data2['title']}"
+    }
     assert response.get_json() == expected_response
 
     # Podcast with no given name
     data3 = {
         "title": "",
         "description": "description 3",
-        "audio": (b"", "test.mp3", "audio/mpeg")
+        "audio": (b"", "test.mp3", "audio/mpeg"),
     }
 
     response = client.post(f"/podcasts/{id_podcast}/episodes", data=data3)
     assert response.status_code == 400
-    expected_response = {
-        "mensaje": "title field is mandatory"}
+    expected_response = {"mensaje": "title field is mandatory"}
     assert response.get_json() == expected_response
+
 
 def test_current_sec(app):
     with app.app_context():
@@ -145,7 +149,7 @@ def test_current_sec(app):
             email="carlo@gmail.com",
             username="Carl Sagan",
             password=generate_password_hash("Test1234"),
-            verified=True
+            verified=True,
         )
         db.session.add(user)
         db.session.commit()
@@ -154,7 +158,7 @@ def test_current_sec(app):
             name="podcast",
             summary="summary",
             description="description",
-            id_author=user.id
+            id_author=user.id,
         )
         db.session.add(podcast)
         db.session.commit()
@@ -162,7 +166,7 @@ def test_current_sec(app):
             audio=b"",
             title="How I met",
             description="how I met your mother",
-            id_podcast=podcast.id
+            id_podcast=podcast.id,
         )
         db.session.add(episode)
         db.session.commit()
@@ -171,8 +175,9 @@ def test_current_sec(app):
     client = app.test_client()
 
     # Authenticated
-    response = client.post('/login', json={"email": "carlo@gmail.com",
-                                           "password": "Test1234"})
+    response = client.post(
+        "/login", json={"email": "carlo@gmail.com", "password": "Test1234"}
+    )
     assert response.status_code == 200
 
     # Episode with no previous playback
@@ -182,7 +187,7 @@ def test_current_sec(app):
     assert response.get_json() == expected_response
 
     # create new current minute for that episode
-    data = {'current_sec':33}
+    data = {"current_sec": 33}
     response = client.put(f"/update_current_sec/{id_episode}", data=data)
     assert response.status_code == 201
     expected_response = {"message": "Current minute saved for new episode played"}
@@ -195,7 +200,7 @@ def test_current_sec(app):
     assert response.get_json() == expected_response
 
     # update minute of a previously played episode
-    data = {'current_sec':66}
+    data = {"current_sec": 66}
     response = client.put(f"/update_current_sec/{id_episode}", data=data)
     assert response.status_code == 201
     expected_response = {"message": "Current minute updated successfully"}
@@ -206,7 +211,63 @@ def test_current_sec(app):
     assert response.status_code == 201
     expected_response = {"minute": 66}
     assert response.get_json() == expected_response
+    
 
+def test_get_podcasts(app):
+    client = app.test_client()
+
+    # No podcasts
+    response = client.get("/podcasts")
+    assert response.status_code == 200
+    assert response.get_json() == []
+
+    with app.app_context():
+        user = User(
+            email="test@example.com",
+            username="test",
+            password=generate_password_hash("Test1234"),
+            verified=True,
+        )
+        db.session.add(user)
+        db.session.commit()
+        podcast = Podcast(
+            cover=b"",
+            name="podcast",
+            summary="summary",
+            description="description",
+            id_author=user.id,
+          
+        )
+        db.session.add(podcast)
+        db.session.commit()
+        id_podcast = podcast.id
+        id_user = user.id
+
+    # With podcasts
+    expected_response = [
+        {
+            "cover": f"/podcasts/{id_podcast}/cover",
+            "description": "description",
+            "id": str(id_podcast),
+            "id_author": str(id_user),
+            "name": "podcast",
+            "summary": "summary",
+            "author": {
+                "id": str(id_user),
+                "username": "test",
+            },
+        }
+    ]
+    response = client.get("/podcasts")
+    assert response.status_code == 200
+    assert response.get_json() == expected_response
+
+    # Cover
+    response = client.get(f"/podcasts/{id_podcast}/cover")
+    assert response.status_code == 200
+    assert response.data == b""
+    
+    
 def test_get_podcast_and_populars(app):
     with app.app_context():
         user = User(
@@ -233,6 +294,7 @@ def test_get_podcast_and_populars(app):
             summary="summary",
             description="buenisimo",
             id_author=id_user_1
+          
         )
         db.session.add(podcast)
         db.session.commit()
