@@ -332,57 +332,6 @@ def create_app(testing=False):
         else:  # first time user plays the episode
             return jsonify({"minute": 0}), 201
 
-    @app.get('/podcasts/<id_podcast>')
-    def get_podcast(id_podcast):
-        podcast = db.session.query(Podcast).filter_by(id=id_podcast).first()
-
-        if not podcast:
-            return jsonify({"error": "Podcast not found"}), 404
-        else:
-            return jsonify({"cover" : podcast.cover.decode('utf-8'),
-                            "name" : podcast.name,
-                            "summary" : podcast.summary,
-                            "description" : podcast.description}), 201
-
-    @app.get('/populars')
-    def get_populars():
-        podcast = Podcast.__table__
-        episode = Episode.__table__
-        user_episode = User_episode.__table__
-
-        # subquery for views
-        subquery = select(podcast.c.id.label('id_view'), func.count("*").label('views'))\
-                    .select_from(podcast)\
-                    .join(episode, podcast.c.id == episode.c.id_podcast)\
-                    .join(user_episode, episode.c.id == user_episode.c.id_episode)\
-                    .group_by(podcast.c.id).alias('subquery')
-
-        # main query
-        stmt = select(podcast.c.id,
-                        podcast.c.cover,
-                        podcast.c.name,
-                        podcast.c.summary,
-                        podcast.c.description,
-                        subquery.c.views)\
-                .select_from(podcast)\
-                .join(subquery, podcast.c.id == subquery.c.id_view)\
-                .where(subquery.c.views > 0)\
-                .order_by(subquery.c.views.desc())\
-                .limit(10)
-              
-        # Execute the query
-        results = db.session.execute(stmt)
-        # Fetch and process the result
-        data = []
-        for result in results:
-            data.append({"id": str(result.id),\
-                        "cover": result.cover.decode('utf-8'),\
-                        "name" : result.name,\
-                        "summary": result.summary,\
-                        "description": result.description,\
-                        "views": result.views})       
-        return jsonify(data), 201   
-
     return app
 
 
