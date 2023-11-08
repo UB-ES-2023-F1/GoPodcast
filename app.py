@@ -3,7 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
 from flask_jwt_extended import (JWTManager, create_access_token, get_jwt,
                                 get_jwt_identity, jwt_required,
@@ -30,6 +30,13 @@ def create_app(testing=False):
     CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173",
          os.getenv('FRONTEND_URL')], supports_credentials=True)
     JWTManager(app)
+
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            res = Response()
+            res.headers['X-Content-Type-Options'] = '*'
+            return res
 
     @app.after_request
     def refresh_expiring_jwts(response):
