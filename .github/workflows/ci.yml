@@ -1,0 +1,63 @@
+# This workflow executes several linters on changed files based on languages used in your code base whenever
+# you push a code or open a pull request.
+#
+# You can adjust the behavior by modifying this file.
+# For more information, see:
+# https://github.com/github/super-linter
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ "main", "dev", "pre" ]
+  pull_request:
+    branches: [ "main", "dev", "pre" ]
+  workflow_dispatch:
+jobs:
+  run-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      - name: Lint Code Base
+        uses: github/super-linter@v4
+        env:
+          DISABLE_ERRORS: true
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_YAML_YamlLint: true
+          VALIDATE_JSCPD: false
+          VALIDATE_PYTHON_ISORT: false
+          DEFAULT_BRANCH: "main"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+    
+      - name: Install requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # pip freeze > requirements.txt
+          
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1
+        with:
+          envkey_POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          envkey_POSTGRES_TEST_URL: ${{ secrets.POSTGRES_TEST_URL }}
+          envkey_JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          envkey_FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          file_name: .env
+        
+      - name: Run end-to-end tests
+        run: |
+          pip install pytest
+          pytest
