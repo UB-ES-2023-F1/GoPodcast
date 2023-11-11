@@ -399,7 +399,7 @@ def create_app(testing=False):
         if not entry:
             return (
                 jsonify({"error": "This episode is not in the stream later list"}),
-                400,
+                404,
             )
         db.session.delete(entry)
         db.session.commit()
