@@ -4,7 +4,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request, send_file, Response
+from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager,
@@ -15,10 +15,10 @@ from flask_jwt_extended import (
     set_access_cookies,
     unset_jwt_cookies,
 )
-from sqlalchemy import select, func
+from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import Episode, Podcast, User, User_episode, db
+from models import Episode, Podcast, StreamLater, User, User_episode, db
 
 
 def create_app(testing=False):
@@ -44,12 +44,14 @@ def create_app(testing=False):
         supports_credentials=True,
     )
     JWTManager(app)
+    with app.app_context():
+        db.create_all()
 
     @app.before_request
     def handle_preflight():
         if request.method == "OPTIONS":
             res = Response()
-            res.headers['X-Content-Type-Options'] = '*'
+            res.headers["X-Content-Type-Options"] = "*"
             return res
 
     @app.after_request
@@ -331,6 +333,77 @@ def create_app(testing=False):
             return jsonify({"minute": user_episode.current_sec}), 201
         else:  # first time user plays the episode
             return jsonify({"minute": 0}), 201
+
+    @app.get("/stream_later")
+    @jwt_required()
+    def get_stream_later():
+        current_user_id = get_jwt_identity()
+        stream_later = db.session.scalars(
+            select(StreamLater)
+            .filter_by(id_user=current_user_id)
+            .join(StreamLater.episode)
+        ).all()
+        return (
+            jsonify(
+                [
+                    {
+                        "id": entry.episode.id,
+                        "title": entry.episode.title,
+                        "description": entry.episode.description,
+                        "id_podcast": entry.episode.id_podcast,
+                    }
+                    for entry in stream_later
+                ]
+            ),
+            200,
+        )
+
+    @app.post("/stream_later")
+    @jwt_required()
+    def post_stream_later():
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        id = data.get("id")
+        if not id:
+            return jsonify({"error": "Specify the episode id"}), 400
+        episode = db.session.scalars(select(Episode.id).where(Episode.id == id)).first()
+        if not episode:
+            return jsonify({"error": "Episode not found"}), 404
+        entry = db.session.scalars(
+            select(StreamLater).where(
+                StreamLater.id_episode == id, StreamLater.id_user == current_user_id
+            )
+        ).first()
+        if entry:
+            return (
+                jsonify({"error": "This episode is already in the stream later list"}),
+                400,
+            )
+        stream_later = StreamLater(
+            id_episode=id,
+            id_user=current_user_id,
+        )
+        db.session.add(stream_later)
+        db.session.commit()
+        return jsonify({"success": True}), 201
+
+    @app.delete("/stream_later/<id>")
+    @jwt_required()
+    def delete_stream_later(id):
+        current_user_id = get_jwt_identity()
+        entry = db.session.scalars(
+            select(StreamLater).where(
+                StreamLater.id_episode == id, StreamLater.id_user == current_user_id
+            )
+        ).first()
+        if not entry:
+            return (
+                jsonify({"error": "This episode is not in the stream later list"}),
+                400,
+            )
+        db.session.delete(entry)
+        db.session.commit()
+        return jsonify({"success": True}), 200
 
     return app
 
