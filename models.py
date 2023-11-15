@@ -99,4 +99,14 @@ class User_episode(Base):
     __table_args__ = (PrimaryKeyConstraint("id_episode", "id_user"),)
 
 
+class StreamLater(Base):
+    __tablename__ = "stream_later"
+
+    id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episode.id"))
+    id_user: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
+    episode: Mapped[Episode] = relationship(init=False)
+
+    __table_args__ = (PrimaryKeyConstraint("id_episode", "id_user"),)
+
+
 db = SQLAlchemy(model_class=Base)
