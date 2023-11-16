@@ -33,6 +33,7 @@ def test_post_podcast(app):
         "description": "Very nice podcast!",
         "summary": "breve resumen aquí",
         "cover": (b"", "test.jpg", "image/jpeg"),
+        "category": "Other"
     }
 
     # Unauthenticated
@@ -74,6 +75,20 @@ def test_post_podcast(app):
     response = client.post("/podcasts", data=data3)
     assert response.status_code == 400
     expected_response = {"mensaje": "name field is mandatory"}
+    assert response.get_json() == expected_response
+
+    # Podcast with not allowed category
+    data4 = {
+        "name": "",
+        "description": "Another very good podcast!",
+        "summary": "otro breve resumen",
+        "cover": (b"", "test.jpg", "image/jpeg"),
+        "category": "not allowed category"
+    }
+
+    response = client.post("/podcasts", data=data4)
+    assert response.status_code == 401
+    expected_response = {"message": "Category not allowed"}
     assert response.get_json() == expected_response
 
 
@@ -256,6 +271,7 @@ def test_get_podcasts(app):
                 "id": str(id_user),
                 "username": "test",
             },
+            "category": None
         }
     ]
     response = client.get("/podcasts")
@@ -459,7 +475,8 @@ def test_get_podcast_and_populars(app):
                             "cover" : f"/podcasts/{id_podcast}/cover",
                             "name" : "podcast bueno",
                             "summary" : "summary",
-                            "description" : "buenisimo"
+                            "description" : "buenisimo",
+                            "category": None
                         }
     assert response.get_json() == expected_response
 
@@ -478,6 +495,7 @@ def test_get_podcast_and_populars(app):
                             "name" : "podcast bueno",
                             "summary" : "summary",
                             "description" : "buenisimo",
+                            "category": None,
                             "views": 2   
                         },
                         {
@@ -491,8 +509,96 @@ def test_get_podcast_and_populars(app):
                             "name" : "podcast3",
                             "summary" : "summary",
                             "description" : "description",
+                            "category": None,
                             "views": 1   
                         }]
     assert response.get_json() == expected_response
-    
-    
+
+
+    def test_categories(app):
+        with app.app_context():
+            user = User(
+                email="carlo@gmail.com",
+                username="Carl Sagan",
+                password=generate_password_hash("Test1234"),
+                verified=True,
+            )
+            db.session.add(user)
+            db.session.commit()
+            id_user = user.id
+            podcast = Podcast(
+                cover=b"",
+                name="podcast",
+                summary="summary",
+                description="description",
+                id_author=user.id,
+                category="Actualidad"
+            )
+            db.session.add(podcast)
+            db.session.commit()
+            id_podcast1 = podcast.id
+            podcast = Podcast(
+                cover=b"",
+                name="podcast2",
+                summary="summary2",
+                description="description2",
+                id_author=user.id,
+                category="Actualidad"
+            )
+            db.session.add(podcast)
+            db.session.commit()
+            id_podcast2 = podcast.id
+            podcast = Podcast(
+                cover=b"",
+                name="podcast3",
+                summary="summary3",
+                description="description3",
+                id_author=user.id,
+                category="Other"
+            )
+            db.session.add(podcast)
+            db.session.commit()
+
+        client = app.test_client()
+
+        # get all categories
+        response = client.get(f"/categories")
+        assert response.status_code == 201
+        expected_response = {'categories': ["Actualidad","Educación",
+                                            "Negocios y Finanzas","Salud y Fitness",
+                                            "Tecnología","Ciencia","Historia",
+                                            "Entretenimiento","Deportes","Arte y Cultura",
+                                            "Other"]}
+        assert response.get_json() == expected_response
+
+        # get podcasts of a given category
+        response = client.get(f"/podcasts/categories/Actualidad")
+        assert response.status_code == 201
+        expected_response = [{
+                                "id": str(id_podcast1),
+                                "id_author": str(id_user),
+                                "author": {
+                                    "id": str(id_user),
+                                    "username": "Carl Sagan",
+                                },
+                                "cover" : f"/podcasts/{id_podcast1}/cover",
+                                "name" : "podcast",
+                                "summary" : "summary",
+                                "description" : "description",
+                                "category": "Actualidad",
+                            },
+                            {
+                                "id": str(id_podcast2),
+                                "id_author": str(id_user),
+                                "author": {
+                                    "id": str(id_user),
+                                    "username": "Carl Sagan",
+                                },
+                                "cover" : f"/podcasts/{id_podcast1}/cover",
+                                "name" : "podcast2",
+                                "summary" : "summary2",
+                                "description" : "description2",
+                                "category": "Actualidad",
+                            }]
+        assert response.get_json() == expected_response
+

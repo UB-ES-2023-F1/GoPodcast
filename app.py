@@ -17,6 +17,7 @@ from flask_jwt_extended import (
 )
 from sqlalchemy import select, func
 from werkzeug.security import check_password_hash, generate_password_hash
+from constants import CATEGORIES
 
 from models import Episode, Podcast, StreamLater, User, User_episode, db
 
@@ -175,6 +176,7 @@ def create_app(testing=False):
                             "id": podcast.author.id,
                             "username": podcast.author.username,
                         },
+                        "category": podcast.category
                     }
                     for podcast in podcasts
                 ]
@@ -229,6 +231,10 @@ def create_app(testing=False):
         name = request.form.get("name")
         summary = request.form.get("summary")
         description = request.form.get("description")
+        category = request.form.get("category")
+
+        if category != None and category not in CATEGORIES:
+            return jsonify({"message": "Category not allowed"}),401
 
         if name == "":
             return jsonify({"mensaje": "name field is mandatory"}), 400
@@ -255,6 +261,7 @@ def create_app(testing=False):
             summary=summary,
             description=description,
             id_author=current_user_id,
+            category=category 
         )
         db.session.add(podcast)
         db.session.commit()
@@ -451,7 +458,8 @@ def create_app(testing=False):
                                 "author": {
                                     "id": podcast.id_author,
                                     "username": podcast.author.username,
-                                }
+                                },
+                                "category": podcast.category
                             }), 201
 
     @app.get('/populars')
@@ -475,6 +483,7 @@ def create_app(testing=False):
                         podcast.c.summary,
                         podcast.c.description,
                         podcast.c.id_author,
+                        podcast.c.category,
                         user.c.username,
                         subquery.c.views)\
                 .select_from(podcast)\
@@ -500,10 +509,50 @@ def create_app(testing=False):
                                 "id": result.id_author,
                                 "username": result.username,
                             },
+                            "category": result.category,
                             "views": result.views
                         })       
         return jsonify(data), 201  
     
+    @app.get('/categories')
+    def get_categories():
+        return jsonify({'categories': CATEGORIES}), 201
+    
+    @app.get('/podcasts/categories/<category>')
+    def get_podcasts_of_category(category):
+
+        if category not in CATEGORIES:
+            return jsonify({"error": "Category not allowed"}),401
+        
+        podcasts = db.session.scalars(
+            select(Podcast).where(Podcast.category == category)
+            .join(User, Podcast.id_author == User.id)
+        ).all()
+
+        return (
+            jsonify(
+                [
+                    {
+                        "id": podcast.id,
+                        "id_author": podcast.id_author,
+                        "author": {
+                            "id": podcast.id_author,
+                            "username": podcast.username,
+                        },
+                        "cover" : podcast.cover,
+                        "name" : podcast.name,
+                        "summary" : podcast.summary,
+                        "description" : podcast.description,
+                        "category": podcast.category
+                    }
+                    for podcast in podcasts
+                ]
+            ),
+            200,
+        )
+        
+
+        
     return app
 
 
