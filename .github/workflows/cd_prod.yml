@@ -22,6 +22,8 @@ name: Continuous Deployment in Production
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 permissions:
