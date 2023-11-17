@@ -33,6 +33,7 @@ def test_post_podcast(app):
         "description": "Very nice podcast!",
         "summary": "breve resumen aquí",
         "cover": (b"", "test.jpg", "image/jpeg"),
+        "category": "Other"
     }
 
     # Unauthenticated
@@ -74,6 +75,20 @@ def test_post_podcast(app):
     response = client.post("/podcasts", data=data3)
     assert response.status_code == 400
     expected_response = {"mensaje": "name field is mandatory"}
+    assert response.get_json() == expected_response
+
+    # Podcast with not allowed category
+    data4 = {
+        "name": "",
+        "description": "Another very good podcast!",
+        "summary": "otro breve resumen",
+        "cover": (b"", "test.jpg", "image/jpeg"),
+        "category": "not allowed category"
+    }
+
+    response = client.post("/podcasts", data=data4)
+    assert response.status_code == 401
+    expected_response = {"message": "Category not allowed"}
     assert response.get_json() == expected_response
 
 
@@ -256,6 +271,7 @@ def test_get_podcasts(app):
                 "id": str(id_user),
                 "username": "test",
             },
+            "category": None
         }
     ]
     response = client.get("/podcasts")
@@ -266,4 +282,323 @@ def test_get_podcasts(app):
     response = client.get(f"/podcasts/{id_podcast}/cover")
     assert response.status_code == 200
     assert response.data == b""
-    
+
+def test_get_episodes(app):
+    with app.app_context():
+        user = User(
+            email="test@example.com",
+            username="test",
+            password=generate_password_hash("Test1234"),
+            verified=True,
+        )
+        db.session.add(user)
+        db.session.commit()
+        id_user = user.id
+        podcast = Podcast(
+            cover=b"",
+            name="podcast",
+            summary="summary",
+            description="description",
+            id_author=user.id,
+          
+        )
+        db.session.add(podcast)
+        db.session.commit()
+        id_podcast = podcast.id
+        episode = Episode(
+            audio=b"\x48\x65",
+            title="Episode1",
+            description="how I met your mother",
+            id_podcast=podcast.id
+        )
+        db.session.add(episode)
+        db.session.commit()
+        id_episode1 = episode.id
+        episode = Episode(
+            audio=b"",
+            title="Episode2",
+            description="how I met your mother 2",
+            id_podcast=podcast.id
+        )
+        db.session.add(episode)
+        db.session.commit()
+        id_episode2 = episode.id
+
+    client = app.test_client()
+
+    # With podcasts
+    expected_response = [
+        {
+            "id": str(id_episode1),
+            "description": "how I met your mother",
+            "title": "Episode1",
+            "audio": f"/episodes/{id_episode1}/audio"
+        },
+        {
+            "id": str(id_episode2),
+            "description": "how I met your mother 2",
+            "title": "Episode2",
+            "audio": f"/episodes/{id_episode2}/audio"
+        }
+    ]
+    response = client.get(f"/podcasts/{id_podcast}/episodes")
+    assert response.status_code == 200
+    assert response.get_json() == expected_response
+
+    # Audio
+    response = client.get(f"/episodes/{id_episode1}/audio")
+    assert response.status_code == 200
+    assert response.data == b"\x48\x65"
+
+def test_get_podcast_and_populars(app):
+    with app.app_context():
+        user = User(
+            email="carlos@gmail.com",
+            username="Carl Sagan",
+            password=generate_password_hash("Test1234"),
+            verified=True
+        )
+        db.session.add(user)
+        db.session.commit()
+        id_user_1 = user.id
+        user = User(
+            email="carla@gmail.com",
+            username="Carla",
+            password=generate_password_hash("123456"),
+            verified=True
+        )
+        db.session.add(user)
+        db.session.commit()
+        id_user_2 = user.id
+        podcast = Podcast(
+            cover=b"",
+            name="podcast bueno",
+            summary="summary",
+            description="buenisimo",
+            id_author=id_user_1
+          
+        )
+        db.session.add(podcast)
+        db.session.commit()
+        id_podcast = podcast.id
+        episode = Episode(
+            audio=b"",
+            title="Episode1",
+            description="how I met your mother",
+            id_podcast=podcast.id
+        )
+        db.session.add(episode)
+        db.session.commit()
+        id_episode_1 = episode.id
+        episode = Episode(
+            audio=b"",
+            title="Episode2",
+            description="how I met your mother",
+            id_podcast=podcast.id
+        )
+        db.session.add(episode)
+        db.session.commit()
+        id_episode_2 = episode.id
+        podcast = Podcast(
+            cover=b"",
+            name="podcast2",
+            summary="summary",
+            description="description",
+            id_author=id_user_1
+        )
+        db.session.add(podcast)
+        db.session.commit()
+        episode = Episode(
+            audio=b"",
+            title="episode_pod2",
+            description="how I met your mother",
+            id_podcast=podcast.id
+        )
+        db.session.add(episode)
+        db.session.commit()
+        podcast = Podcast(
+            cover=b"",
+            name="podcast3",
+            summary="summary",
+            description="description",
+            id_author=id_user_1
+        )
+        db.session.add(podcast)
+        db.session.commit()
+        id_podcast3 = podcast.id
+        episode = Episode(
+            audio=b"",
+            title="Episode_pod3",
+            description="how I met your mother",
+            id_podcast=podcast.id
+        )
+        db.session.add(episode)
+        db.session.commit()
+        id_episode_3 = episode.id
+        # create the views
+        user1_episode1 = User_episode(
+            id_episode = id_episode_1,
+            id_user = id_user_1,
+            current_sec = 20
+        )
+        db.session.add(user1_episode1)
+        db.session.commit()
+        # create the views
+        user1_episode2 = User_episode(
+            id_episode = id_episode_2,
+            id_user = id_user_1,
+            current_sec = 20
+        )
+        db.session.add(user1_episode2)
+        db.session.commit()
+        # create the views
+        user2_episode3 = User_episode(
+            id_episode = id_episode_3,
+            id_user = id_user_2,
+            current_sec = 20
+        )
+        db.session.add(user2_episode3)
+        db.session.commit()
+
+    client = app.test_client()
+
+    # Retrieve a single podcast based on its id.
+    response = client.get(f"/podcasts/{id_podcast}")
+    assert response.status_code == 201
+    expected_response = {
+                            "id": str(id_podcast),
+                            "id_author": str(id_user_1),
+                            "author": {
+                                "id": str(id_user_1),
+                                "username": "Carl Sagan",
+                            },
+                            "cover" : f"/podcasts/{id_podcast}/cover",
+                            "name" : "podcast bueno",
+                            "summary" : "summary",
+                            "description" : "buenisimo",
+                            "category": None
+                        }
+    assert response.get_json() == expected_response
+
+    # Retrieve all the popular podcasts.
+    # si no tiene views, no aparece en populares
+    response = client.get("/populars")
+    assert response.status_code == 201
+    expected_response =[{
+                            "id": str(id_podcast),
+                            "id_author": str(id_user_1),
+                            "author": {
+                                "id": str(id_user_1),
+                                "username": "Carl Sagan",
+                            },
+                            "cover" : f"/podcasts/{id_podcast}/cover",
+                            "name" : "podcast bueno",
+                            "summary" : "summary",
+                            "description" : "buenisimo",
+                            "category": None,
+                            "views": 2   
+                        },
+                        {
+                            "id": str(id_podcast3),
+                            "id_author": str(id_user_1),
+                            "author": {
+                                "id": str(id_user_1),
+                                "username": "Carl Sagan",
+                            },
+                            "cover" : f"/podcasts/{id_podcast3}/cover",
+                            "name" : "podcast3",
+                            "summary" : "summary",
+                            "description" : "description",
+                            "category": None,
+                            "views": 1   
+                        }]
+    assert response.get_json() == expected_response
+
+
+    def test_categories(app):
+        with app.app_context():
+            user = User(
+                email="carlo@gmail.com",
+                username="Carl Sagan",
+                password=generate_password_hash("Test1234"),
+                verified=True,
+            )
+            db.session.add(user)
+            db.session.commit()
+            id_user = user.id
+            podcast = Podcast(
+                cover=b"",
+                name="podcast",
+                summary="summary",
+                description="description",
+                id_author=user.id,
+                category="Actualidad"
+            )
+            db.session.add(podcast)
+            db.session.commit()
+            id_podcast1 = podcast.id
+            podcast = Podcast(
+                cover=b"",
+                name="podcast2",
+                summary="summary2",
+                description="description2",
+                id_author=user.id,
+                category="Actualidad"
+            )
+            db.session.add(podcast)
+            db.session.commit()
+            id_podcast2 = podcast.id
+            podcast = Podcast(
+                cover=b"",
+                name="podcast3",
+                summary="summary3",
+                description="description3",
+                id_author=user.id,
+                category="Other"
+            )
+            db.session.add(podcast)
+            db.session.commit()
+
+        client = app.test_client()
+
+        # get all categories
+        response = client.get(f"/categories")
+        assert response.status_code == 201
+        expected_response = {'categories': ["Actualidad","Educación",
+                                            "Negocios y Finanzas","Salud y Fitness",
+                                            "Tecnología","Ciencia","Historia",
+                                            "Entretenimiento","Deportes","Arte y Cultura",
+                                            "Other"]}
+        assert response.get_json() == expected_response
+
+        # get podcasts of a given category
+        response = client.get(f"/podcasts/categories/Actualidad")
+        assert response.status_code == 201
+        expected_response = [{
+                                "id": str(id_podcast1),
+                                "id_author": str(id_user),
+                                "author": {
+                                    "id": str(id_user),
+                                    "username": "Carl Sagan",
+                                },
+                                "cover" : f"/podcasts/{id_podcast1}/cover",
+                                "name" : "podcast",
+                                "summary" : "summary",
+                                "description" : "description",
+                                "category": "Actualidad",
+                            },
+                            {
+                                "id": str(id_podcast2),
+                                "id_author": str(id_user),
+                                "author": {
+                                    "id": str(id_user),
+                                    "username": "Carl Sagan",
+                                },
+                                "cover" : f"/podcasts/{id_podcast1}/cover",
+                                "name" : "podcast2",
+                                "summary" : "summary2",
+                                "description" : "description2",
+                                "category": "Actualidad",
+                            }]
+        assert response.get_json() == expected_response
+

@@ -50,6 +50,7 @@ class Podcast(Base):
     description: Mapped[str]
     id_author: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     author: Mapped[User] = relationship(init=False)
+    category: Mapped[str] = mapped_column(nullable=True,default=None)
 
 
 class Episode(Base):
