@@ -50,7 +50,7 @@ class Podcast(Base):
     description: Mapped[str]
     id_author: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
     author: Mapped[User] = relationship(init=False)
-    category: Mapped[str] = mapped_column(nullable=True,default=None)
+    category: Mapped[str] = mapped_column(nullable=True, default=None)
 
 
 class Episode(Base):
@@ -108,6 +108,16 @@ class StreamLater(Base):
     episode: Mapped[Episode] = relationship(init=False)
 
     __table_args__ = (PrimaryKeyConstraint("id_episode", "id_user"),)
+
+
+class Favorite(Base):
+    __tablename__ = "favorite"
+
+    id_podcast: Mapped[uuid.UUID] = mapped_column(ForeignKey("podcast.id"))
+    id_user: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
+    podcast: Mapped[Podcast] = relationship(init=False)
+
+    __table_args__ = (PrimaryKeyConstraint("id_podcast", "id_user"),)
 
 
 db = SQLAlchemy(model_class=Base)

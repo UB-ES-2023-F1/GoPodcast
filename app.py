@@ -15,11 +15,11 @@ from flask_jwt_extended import (
     set_access_cookies,
     unset_jwt_cookies,
 )
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from werkzeug.security import check_password_hash, generate_password_hash
-from constants import CATEGORIES
 
-from models import Episode, Podcast, StreamLater, User, User_episode, db
+from constants import CATEGORIES
+from models import Episode, Favorite, Podcast, StreamLater, User, User_episode, db
 
 
 def create_app(testing=False):
@@ -176,19 +176,19 @@ def create_app(testing=False):
                             "id": podcast.author.id,
                             "username": podcast.author.username,
                         },
-                        "category": podcast.category
+                        "category": podcast.category,
                     }
                     for podcast in podcasts
                 ]
             ),
             200,
         )
-    
+
     @app.get("/podcasts/<id_podcast>/episodes")
     def get_episodes(id_podcast):
         episodes = db.session.scalars(
             select(Episode).where(Episode.id_podcast == id_podcast)
-        ).all()       
+        ).all()
         return (
             jsonify(
                 [
@@ -212,7 +212,7 @@ def create_app(testing=False):
         if not podcast:
             return jsonify({"success": False, "error": "Podcast not found"}), 404
         return send_file(io.BytesIO(podcast.cover), mimetype="image/jpeg")
-    
+
     @app.get("/episodes/<id_episode>/audio")
     def get_episode_audio(id_episode):
         episode = db.session.scalars(
@@ -234,7 +234,7 @@ def create_app(testing=False):
         category = request.form.get("category")
 
         if category != None and category not in CATEGORIES:
-            return jsonify({"message": "Category not allowed"}),401
+            return jsonify({"message": "Category not allowed"}), 401
 
         if name == "":
             return jsonify({"mensaje": "name field is mandatory"}), 400
@@ -261,7 +261,7 @@ def create_app(testing=False):
             summary=summary,
             description=description,
             id_author=current_user_id,
-            category=category 
+            category=category,
         )
         db.session.add(podcast)
         db.session.commit()
@@ -441,28 +441,112 @@ def create_app(testing=False):
         db.session.commit()
         return jsonify({"success": True}), 200
 
-    @app.get('/podcasts/<id_podcast>')
+    @app.get("/favorites")
+    @jwt_required()
+    def get_favorites():
+        current_user_id = get_jwt_identity()
+        favorites = db.session.scalars(
+            select(Favorite)
+            .filter_by(id_user=current_user_id)
+            .join(Favorite.podcast)
+            .join(Podcast.author)
+        ).all()
+        return (
+            jsonify(
+                [
+                    {
+                        "id": entry.podcast.id,
+                        "name": entry.podcast.name,
+                        "description": entry.podcast.description,
+                        "summary": entry.podcast.summary,
+                        "cover": f"/podcasts/{entry.podcast.id}/cover",
+                        "id_author": entry.podcast.id_author,
+                        "author": {
+                            "id": entry.podcast.author.id,
+                            "username": entry.podcast.author.username,
+                        },
+                        "category": entry.podcast.category,
+                    }
+                    for entry in favorites
+                ]
+            ),
+            200,
+        )
+
+    @app.post("/favorites")
+    @jwt_required()
+    def post_favorites():
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        id = data.get("id")
+        if not id:
+            return jsonify({"error": "Specify the podcast id"}), 400
+        podcast = db.session.scalars(select(Podcast.id).where(Podcast.id == id)).first()
+        if not podcast:
+            return jsonify({"error": "Podcast not found"}), 404
+        entry = db.session.scalars(
+            select(Favorite).where(
+                Favorite.id_podcast == id, Favorite.id_user == current_user_id
+            )
+        ).first()
+        if entry:
+            return (
+                jsonify({"error": "This podcast is already in the favorites list"}),
+                400,
+            )
+        favorite = Favorite(
+            id_podcast=id,
+            id_user=current_user_id,
+        )
+        db.session.add(favorite)
+        db.session.commit()
+        return jsonify({"success": True}), 201
+
+    @app.delete("/favorites/<id>")
+    @jwt_required()
+    def delete_favorites(id):
+        current_user_id = get_jwt_identity()
+        entry = db.session.scalars(
+            select(Favorite).where(
+                Favorite.id_podcast == id, Favorite.id_user == current_user_id
+            )
+        ).first()
+        if not entry:
+            return (
+                jsonify({"error": "This podcast is not in the favorites list"}),
+                404,
+            )
+        db.session.delete(entry)
+        db.session.commit()
+        return jsonify({"success": True}), 200
+
+    @app.get("/podcasts/<id_podcast>")
     def get_podcast(id_podcast):
         podcast = db.session.query(Podcast).filter_by(id=id_podcast).first()
 
         if not podcast:
             return jsonify({"error": "Podcast not found"}), 404
         else:
-            return jsonify({
-                                "id": podcast.id,
-                                "description": podcast.description,
-                                "name": podcast.name,
-                                "summary": podcast.summary,
-                                "cover": f"/podcasts/{podcast.id}/cover",
-                                "id_author": podcast.id_author,
-                                "author": {
-                                    "id": podcast.id_author,
-                                    "username": podcast.author.username,
-                                },
-                                "category": podcast.category
-                            }), 201
+            return (
+                jsonify(
+                    {
+                        "id": podcast.id,
+                        "description": podcast.description,
+                        "name": podcast.name,
+                        "summary": podcast.summary,
+                        "cover": f"/podcasts/{podcast.id}/cover",
+                        "id_author": podcast.id_author,
+                        "author": {
+                            "id": podcast.id_author,
+                            "username": podcast.author.username,
+                        },
+                        "category": podcast.category,
+                    }
+                ),
+                201,
+            )
 
-    @app.get('/populars')
+    @app.get("/populars")
     def get_populars():
         podcast = Podcast.__table__
         episode = Episode.__table__
@@ -470,62 +554,71 @@ def create_app(testing=False):
         user_episode = User_episode.__table__
 
         # subquery for views
-        subquery = select(podcast.c.id.label('id_view'), func.count("*").label('views'))\
-                    .select_from(podcast)\
-                    .join(episode, podcast.c.id == episode.c.id_podcast)\
-                    .join(user_episode, episode.c.id == user_episode.c.id_episode)\
-                    .group_by(podcast.c.id).alias('subquery')
+        subquery = (
+            select(podcast.c.id.label("id_view"), func.count("*").label("views"))
+            .select_from(podcast)
+            .join(episode, podcast.c.id == episode.c.id_podcast)
+            .join(user_episode, episode.c.id == user_episode.c.id_episode)
+            .group_by(podcast.c.id)
+            .alias("subquery")
+        )
 
         # main query
-        stmt = select(podcast.c.id,
-                        podcast.c.cover,
-                        podcast.c.name,
-                        podcast.c.summary,
-                        podcast.c.description,
-                        podcast.c.id_author,
-                        podcast.c.category,
-                        user.c.username,
-                        subquery.c.views)\
-                .select_from(podcast)\
-                .join(user, podcast.c.id_author == user.c.id)\
-                .join(subquery, podcast.c.id == subquery.c.id_view)\
-                .where(subquery.c.views > 0)\
-                .order_by(subquery.c.views.desc())\
-                .limit(10)
-              
+        stmt = (
+            select(
+                podcast.c.id,
+                podcast.c.cover,
+                podcast.c.name,
+                podcast.c.summary,
+                podcast.c.description,
+                podcast.c.id_author,
+                podcast.c.category,
+                user.c.username,
+                subquery.c.views,
+            )
+            .select_from(podcast)
+            .join(user, podcast.c.id_author == user.c.id)
+            .join(subquery, podcast.c.id == subquery.c.id_view)
+            .where(subquery.c.views > 0)
+            .order_by(subquery.c.views.desc())
+            .limit(10)
+        )
+
         # Execute the query
         results = db.session.execute(stmt)
         # Fetch and process the result
         data = []
         for result in results:
-            data.append({
-                            "id": str(result.id),
-                            "description": result.description,
-                            "name": result.name,
-                            "summary": result.summary,
-                            "cover": f"/podcasts/{result.id}/cover",
-                            "id_author": result.id_author,
-                            "author": {
-                                "id": result.id_author,
-                                "username": result.username,
-                            },
-                            "category": result.category,
-                            "views": result.views
-                        })       
-        return jsonify(data), 201  
-    
-    @app.get('/categories')
-    def get_categories():
-        return jsonify({'categories': CATEGORIES}), 201
-    
-    @app.get('/podcasts/categories/<category>')
-    def get_podcasts_of_category(category):
+            data.append(
+                {
+                    "id": str(result.id),
+                    "description": result.description,
+                    "name": result.name,
+                    "summary": result.summary,
+                    "cover": f"/podcasts/{result.id}/cover",
+                    "id_author": result.id_author,
+                    "author": {
+                        "id": result.id_author,
+                        "username": result.username,
+                    },
+                    "category": result.category,
+                    "views": result.views,
+                }
+            )
+        return jsonify(data), 201
 
+    @app.get("/categories")
+    def get_categories():
+        return jsonify({"categories": CATEGORIES}), 201
+
+    @app.get("/podcasts/categories/<category>")
+    def get_podcasts_of_category(category):
         if category not in CATEGORIES:
-            return jsonify({"error": "Category not allowed"}),401
-        
+            return jsonify({"error": "Category not allowed"}), 401
+
         podcasts = db.session.scalars(
-            select(Podcast).where(Podcast.category == category)
+            select(Podcast)
+            .where(Podcast.category == category)
             .join(User, Podcast.id_author == User.id)
         ).all()
 
@@ -539,20 +632,18 @@ def create_app(testing=False):
                             "id": podcast.id_author,
                             "username": podcast.username,
                         },
-                        "cover" : podcast.cover,
-                        "name" : podcast.name,
-                        "summary" : podcast.summary,
-                        "description" : podcast.description,
-                        "category": podcast.category
+                        "cover": podcast.cover,
+                        "name": podcast.name,
+                        "summary": podcast.summary,
+                        "description": podcast.description,
+                        "category": podcast.category,
                     }
                     for podcast in podcasts
                 ]
             ),
             200,
         )
-        
 
-        
     return app
 
 
