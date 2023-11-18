@@ -21,6 +21,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from constants import CATEGORIES
 from models import Episode, Favorite, Podcast, StreamLater, User, User_episode, db
 
+from Levenshtein import distance as levenshtein_distance
+
 
 def create_app(testing=False):
     app = Flask(__name__)
@@ -632,7 +634,7 @@ def create_app(testing=False):
                             "id": podcast.id_author,
                             "username": podcast.username,
                         },
-                        "cover": podcast.cover,
+                        "cover": f"/podcasts/{podcast.id}/cover",
                         "name": podcast.name,
                         "summary": podcast.summary,
                         "description": podcast.description,
@@ -643,6 +645,132 @@ def create_app(testing=False):
             ),
             200,
         )
+
+    @app.get("/search/podcast/<podcast_name>")
+    def search_podcast(podcast_name):
+        # name attribute is unique, so there can only be 1 or 0 matches
+        podcast = db.session.query(Podcast).filter_by(name=podcast_name).first()
+
+        if podcast: # perfect match
+            return (
+                jsonify(
+                    [{
+                        "id": podcast.id,
+                        "description": podcast.description,
+                        "name": podcast.name,
+                        "summary": podcast.summary,
+                        "cover": f"/podcasts/{podcast.id}/cover",
+                        "id_author": podcast.id_author,
+                        "author": {
+                            "id": podcast.id_author,
+                            "username": podcast.author.username,
+                        },
+                        "category": podcast.category,
+                        "match_percentatge": 100
+                    }]
+                ),
+                201,
+            )
+        
+        else: # look for partial match
+            # get all the names of the database
+            names_query = db.session.query(Podcast.name).all()
+            names = [n[0] for n in names_query]
+
+            # compute Levenshtein distance of all of them, keep values above a threshold
+            thr = 0.4
+            
+            names_above_thr = {} # dict with (key,value)=(name,distance)
+            for name in names:
+                # just consider matches with normalized distance above a threshold
+                d = levenshtein_distance(name, podcast_name) / max(len(name),len(podcast_name))
+                if d <= thr:
+                    names_above_thr[name] = d
+
+            if not names_above_thr:
+                return jsonify({"message": "No good matches found"}), 404
+
+            # return best matches above the threshold
+            podcasts = db.session.query(Podcast).filter(Podcast.name.in_(names_above_thr)).all()
+            return (
+                jsonify(
+                    [
+                        {
+                            "id": podcast.id,
+                            "id_author": podcast.id_author,
+                            "author": {
+                                "id": podcast.id_author,
+                                "username": podcast.author.username,
+                            },
+                            "cover": f"/podcasts/{podcast.id}/cover",
+                            "name": podcast.name,
+                            "summary": podcast.summary,
+                            "description": podcast.description,
+                            "category": podcast.category,
+                            "match_percentatge": round(float((1-names_above_thr[podcast.name])*100),2)
+                        }
+                        for podcast in podcasts
+                    ]
+                ),
+                200,
+            )
+
+
+    @app.get("/search/user/<username>")
+    def search_user(username):
+        # username attribute is unique, so there can only be 1 or 0 matches
+        user = db.session.query(User).filter_by(username=username).first()
+
+        if user: # perfect match
+            return (
+                jsonify(
+                    [{
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "verified": user.verified,
+                        "match_percentatge": 100
+                    }]
+                ),
+                201,
+            )
+        
+        else: # look for partial match
+            # get all the names of the database
+            names_query = db.session.query(User.username).all()
+            names = [n[0] for n in names_query]
+
+            # compute Levenshtein distance of all of them, keep values above a threshold
+            thr = 0.4
+            
+            names_above_thr = {} # dict with (key,value)=(name,distance)
+            for name in names:
+                # just consider matches with normalized distance above a threshold
+                d = levenshtein_distance(name, username) / max(len(name),len(username))
+                if d <= thr:
+                    names_above_thr[name] = d
+
+            if not names_above_thr:
+                return jsonify({"message": "No good matches found"}), 404
+            
+            # return best matches above the threshold
+            usernames = db.session.query(User).filter(User.username.in_(names_above_thr)).all()
+            return (
+                jsonify(
+                    [
+                        {
+                            "id": user.id,
+                            "username": user.username,
+                            "email": user.email,
+                            "verified": user.verified,
+                            "match_percentatge": round(float((1-names_above_thr[user.username])*100),2)
+                        }
+                        for user in usernames
+                    ]
+                ),
+                200,
+            )
+
 
     return app
 
