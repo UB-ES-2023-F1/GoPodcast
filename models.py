@@ -120,4 +120,25 @@ class Favorite(Base):
     __table_args__ = (PrimaryKeyConstraint("id_podcast", "id_user"),)
 
 
+class Comment(Base):
+    __tablename__ = "comment"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        init=False,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        unique=True,
+        nullable=False,
+    )
+    content: Mapped[str]
+    created_at: Mapped[str] = mapped_column(
+        nullable=False, server_default=text("now()"), init=False
+    )
+    id_user: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id"))
+    id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episode.id"))
+    user: Mapped[User] = relationship(init=False)
+    episode: Mapped[Episode] = relationship(init=False)
+
+
 db = SQLAlchemy(model_class=Base)

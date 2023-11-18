@@ -19,7 +19,16 @@ from sqlalchemy import func, select
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from constants import CATEGORIES
-from models import Episode, Favorite, Podcast, StreamLater, User, User_episode, db
+from models import (
+    Comment,
+    Episode,
+    Favorite,
+    Podcast,
+    StreamLater,
+    User,
+    User_episode,
+    db,
+)
 
 
 def create_app(testing=False):
@@ -45,8 +54,6 @@ def create_app(testing=False):
         supports_credentials=True,
     )
     JWTManager(app)
-    with app.app_context():
-        db.create_all()
 
     @app.before_request
     def handle_preflight():
@@ -221,6 +228,86 @@ def create_app(testing=False):
         if not episode:
             return jsonify({"success": False, "error": "Episode not found"}), 404
         return send_file(io.BytesIO(episode.audio), mimetype="audio/mp3")
+
+    @app.get("/episodes/<id_episode>/comments")
+    def get_episode_comments(id_episode):
+        episode = db.session.scalars(
+            select(Episode).where(Episode.id == id_episode)
+        ).first()
+        if not episode:
+            return jsonify({"success": False, "error": "Episode not found"}), 404
+        comments = db.session.scalars(
+            select(Comment).where(Comment.id_episode == id_episode).join(Comment.user)
+        ).all()
+        return (
+            jsonify(
+                [
+                    {
+                        "id": comment.id,
+                        "id_user": comment.id_user,
+                        "id_episode": comment.id_episode,
+                        "content": comment.content,
+                        "created_at": comment.created_at,
+                        "user": {
+                            "id": comment.user.id,
+                            "username": comment.user.username,
+                        },
+                    }
+                    for comment in comments
+                ]
+            ),
+            200,
+        )
+
+    @app.post("/episodes/<id_episode>/comments")
+    @jwt_required()
+    def post_episode_comments(id_episode):
+        episode = db.session.scalars(
+            select(Episode).where(Episode.id == id_episode)
+        ).first()
+        if not episode:
+            return jsonify({"success": False, "error": "Episode not found"}), 404
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        content = data.get("content")
+        if not content:
+            return jsonify({"error": "Specify the content of the comment"}), 400
+        comment = Comment(
+            content=content,
+            id_user=current_user_id,
+            id_episode=id_episode,
+        )
+        db.session.add(comment)
+        db.session.commit()
+        return jsonify({"success": True}), 201
+
+    @app.delete("/episodes/<id_episode>/comments/<id_comment>")
+    @jwt_required()
+    def delete_episode_comments(id_episode, id_comment):
+        episode = db.session.scalars(
+            select(Episode).where(Episode.id == id_episode)
+        ).first()
+        if not episode:
+            return jsonify({"success": False, "error": "Episode not found"}), 404
+        comment = db.session.scalars(
+            select(Comment).where(Comment.id == id_comment)
+        ).first()
+        if not comment:
+            return jsonify({"success": False, "error": "Comment not found"}), 404
+        current_user_id = get_jwt_identity()
+        if str(comment.id_user) != current_user_id:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "You are not the author of this comment",
+                    }
+                ),
+                401,
+            )
+        db.session.delete(comment)
+        db.session.commit()
+        return jsonify({"success": True}), 200
 
     @app.post("/podcasts")
     @jwt_required()
