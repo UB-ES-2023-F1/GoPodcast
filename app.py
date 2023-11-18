@@ -237,7 +237,10 @@ def create_app(testing=False):
         if not episode:
             return jsonify({"success": False, "error": "Episode not found"}), 404
         comments = db.session.scalars(
-            select(Comment).where(Comment.id_episode == id_episode).join(Comment.user)
+            select(Comment)
+            .where(Comment.id_episode == id_episode)
+            .order_by(Comment.created_at)
+            .join(Comment.user)
         ).all()
         return (
             jsonify(
@@ -282,13 +285,9 @@ def create_app(testing=False):
         return jsonify({"success": True}), 201
 
     @app.delete("/episodes/<id_episode>/comments/<id_comment>")
+    @app.delete("/comments/<id_comment>")
     @jwt_required()
-    def delete_episode_comments(id_episode, id_comment):
-        episode = db.session.scalars(
-            select(Episode).where(Episode.id == id_episode)
-        ).first()
-        if not episode:
-            return jsonify({"success": False, "error": "Episode not found"}), 404
+    def delete_episode_comments(id_comment, id_episode=None):
         comment = db.session.scalars(
             select(Comment).where(Comment.id == id_comment)
         ).first()
@@ -303,7 +302,7 @@ def create_app(testing=False):
                         "error": "You are not the author of this comment",
                     }
                 ),
-                401,
+                403,
             )
         db.session.delete(comment)
         db.session.commit()
