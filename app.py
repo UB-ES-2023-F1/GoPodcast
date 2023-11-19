@@ -856,7 +856,206 @@ def create_app(testing=False):
                 ),
                 200,
             )
+        
+    @app.get("/user/<user_id>")
+    def get_user(user_id):
+        user = db.session.query(User).filter_by(id=user_id).first()
 
+        return (
+                jsonify(
+                    {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "verified": user.verified,
+                    }
+                ),
+                201,
+            )
+
+    @app.get("/user/created_podcasts/<user_id>")
+    def get_created_podcasts_by_user(user_id):
+        # name attribute is unique, so there can only be 1 or 0 matches
+        podcasts = db.session.query(Podcast).filter_by(id_author=user_id).all()
+
+        if not podcasts:
+            return jsonify({"message": "User has no podcast created"}), 201
+        else:
+            return (
+                jsonify(
+                    [
+                        {
+                            "id": podcast.id,
+                            "author": {
+                                "id": podcast.id_author,
+                                "username": podcast.author.username,
+                            },
+                            "cover": f"/podcasts/{podcast.id}/cover",
+                            "name": podcast.name,
+                            "summary": podcast.summary,
+                            "description": podcast.description,
+                            "category": podcast.category,
+                        }
+                        for podcast in podcasts
+                    ]
+                ),
+                200,
+            )
+        
+    @app.put("/podcasts/<id_podcast>")
+    @jwt_required()
+    def edit_podcast(id_podcast):
+        current_user_id = get_jwt_identity()
+
+        new_cover = request.files.get("cover")
+        if new_cover:
+            new_cover=new_cover.read()
+        new_name = request.form.get("name")
+        new_summary = request.form.get("summary")
+        new_description = request.form.get("description")
+        new_category = request.form.get("category")
+
+        # Let's first check the validity of the new data
+        if new_category != None and new_category not in CATEGORIES:
+            return jsonify({"message": "Category not allowed"}), 401
+        
+        podcast = db.session.scalars(
+            select(Podcast).where(Podcast.id == id_podcast)
+        ).first()
+
+        if not podcast:
+            return jsonify({"error": "Podcast not found"}), 404
+
+        if str(podcast.id_author) != current_user_id:
+            return jsonify({"error": "User can only edit their own creations"}), 404
+        
+        if new_name and new_name != "" and new_name != podcast.name:
+            filtered_podcast = (
+                db.session.query(Podcast)
+                .filter_by(id_author=current_user_id, name=new_name)
+                .first()
+            )
+
+            if filtered_podcast is not None:
+                return (
+                    jsonify(
+                        {
+                            "mensaje": f"This user already has a podcast with the name: {new_name}"
+                        }
+                    ),
+                    400,
+                )
+            else:
+                podcast.name = new_name
+
+        
+        if new_cover: podcast.cover = new_cover
+        if new_summary: podcast.summary = new_summary
+        if new_description: podcast.description = new_description
+        if new_category: podcast.category = new_category
+
+        db.session.commit()
+        return jsonify({"message": "Podcast updated successfully"}), 201
+
+        
+    @app.put("/episodes/<id_episode>")
+    @jwt_required()
+    def edit_episode(id_episode):
+        current_user_id = get_jwt_identity()
+
+        new_audio = request.files.get("audio")
+        if new_audio:
+            new_audio = new_audio.read()
+        new_title = request.form.get("title")
+        new_description = request.form.get("description")
+
+        episode = db.session.scalars(
+            select(Episode).where(Episode.id == id_episode)
+        ).first()
+
+        if not episode:
+            return jsonify({"error": "Episode not found"}), 404
+
+        podcast = db.session.scalars(
+            select(Podcast).where(Podcast.id == episode.id_podcast)
+        ).first()
+
+        if str(podcast.id_author) != current_user_id:
+            return jsonify({"error": "User can only edit their own creations"}), 404
+        
+        if new_title and new_title != "" and new_title != episode.title:
+            filtered_episode = (
+                db.session.query(Episode)
+                .filter_by(id_podcast=podcast.id, title=new_title)
+                .first()
+            )
+
+            if filtered_episode is not None:
+                return (
+                    jsonify(
+                        {
+                        "mensaje": f"This podcast already has an episode with the title: {new_title}"
+                    }
+                    ),
+                    400,
+                )
+            else:
+                episode.title = new_title
+        
+        if new_audio: episode.audio = new_audio
+        if new_description: episode.description = new_description
+
+        db.session.commit()
+        return jsonify({"message": "Episode updated successfully"}), 201
+
+    @app.delete("/podcasts/<id_podcast>")
+    @jwt_required()
+    def delete_podcast(id_podcast):
+        current_user_id = get_jwt_identity()
+
+        podcast = db.session.scalars(
+            select(Podcast).where(Podcast.id == id_podcast)
+        ).first()
+
+        if not podcast:
+            return jsonify({"error": "Podcast not found"}), 404
+
+        if str(podcast.id_author) != current_user_id:
+            return jsonify({"error": "User can only delete their own creations"}), 404
+        
+        # all episodes and other dependencies will be automatically deleted
+        # because we set an "on delete cascade" behaviour
+
+        db.session.delete(podcast)
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    
+    @app.delete("/episodes/<id_episode>")
+    @jwt_required()
+    def delete_episode(id_episode):
+        current_user_id = get_jwt_identity()
+
+        episode = db.session.scalars(
+            select(Episode).where(Episode.id == id_episode)
+        ).first()
+
+        if not episode:
+            return jsonify({"error": "Episode not found"}), 404
+
+        podcast = db.session.scalars(
+            select(Podcast).where(Podcast.id == episode.id_podcast)
+        ).first()
+
+        if str(podcast.id_author) != current_user_id:
+            return jsonify({"error": "User can only edit their own creations"}), 404
+        
+        # all dependencies will be automatically deleted
+        # because we set an "on delete cascade" behaviour
+
+        db.session.delete(episode)
+        db.session.commit()
+        return jsonify({"success": True}), 200
+    
 
     return app
 
