@@ -564,11 +564,20 @@ def test_get_podcast_and_populars(app):
         # get all categories
         response = client.get(f"/categories")
         assert response.status_code == 201
-        expected_response = {'categories': ["Actualidad","Educación",
-                                            "Negocios y Finanzas","Salud y Fitness",
-                                            "Tecnología","Ciencia","Historia",
-                                            "Entretenimiento","Deportes","Arte y Cultura",
-                                            "Other"]}
+        expected_response = [
+            {"image_url": "/categories/images/Actualidad.png", "title": "Actualidad"},
+            {"image_url": "/categories/images/Educación.png", "title": "Educación"},
+            {"image_url": "/categories/images/Negocios y Finanzas.png", "title": "Negocios y Finanzas"},
+            {"image_url": "/categories/images/Salud y Fitness.png", "title": "Salud y Fitness"},
+            {"image_url": "/categories/images/Tecnología.png", "title": "Tecnología"},
+            {"image_url": "/categories/images/Ciencia.png", "title": "Ciencia"},
+            {"image_url": "/categories/images/Historia.png", "title": "Historia"},
+            {"image_url": "/categories/images/Entretenimiento.jpg", "title": "Entretenimiento"},
+            {"image_url": "/categories/images/Deportes.jpg", "title": "Deportes"},
+            {"image_url": "/categories/images/Arte y Cultura.png", "title": "Arte y Cultura"},
+            {"image_url": "/categories/images/Other.png", "title": "Other"}, 
+            {"image_url": "/categories/images/Música.jpg", "title": "Música"}   
+        ]
         assert response.get_json() == expected_response
 
         # get podcasts of a given category
