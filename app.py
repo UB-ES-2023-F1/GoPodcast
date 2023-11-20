@@ -18,7 +18,7 @@ from flask_jwt_extended import (
 from sqlalchemy import func, select
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from constants import CATEGORIES
+from constants.constants import CATEGORIES
 from models import (
     Comment,
     Episode,
@@ -697,7 +697,23 @@ def create_app(testing=False):
 
     @app.get("/categories")
     def get_categories():
-        return jsonify({"categories": CATEGORIES}), 201
+        c = []
+        jpg_categories = ["Deportes", "Entretenimiento", "Música"]
+        for category in CATEGORIES:
+            if category in jpg_categories:
+                ext = ".jpg"
+            else:
+                ext = ".png"
+            c.append({
+                        "image_url": f"/categories/images/{category}"+ext,
+                        "title": category
+                    })
+            
+        return jsonify(c),200
+    
+    @app.get("/categories/images/<filename>")
+    def get_image_of_category(filename):
+        return send_file(os.path.join('constants', filename))
 
     @app.get("/podcasts/categories/<category>")
     def get_podcasts_of_category(category):
