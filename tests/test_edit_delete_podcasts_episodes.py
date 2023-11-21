@@ -79,10 +79,9 @@ def test_search_perfect_match(app):
     response = client.get(f"/user/{id_user}")
     assert response.status_code == 201
     expected_response = {
-                            "id": str(id_user),
-                            "username": "Carl Sagan",
-                            "email": "test@example.com",
-                            "verified": True,
+                            "name": "Carl Sagan",
+                            "bio": None,
+                            "type": "author",
                         }
     assert response.get_json() == expected_response
 
@@ -139,6 +138,25 @@ def test_search_perfect_match(app):
     client.post(
         "/login", json={"email": "test@example.com", "password": "Test123"}
     )
+
+    bio_data = {
+        "bio": "Soy un crack"
+    }
+
+    # change user's bio
+    response = client.put(f"/user/bio", data=bio_data)
+    assert response.status_code == 201
+    expected_response = {"message": "Bio updated successfully"}
+    assert response.get_json() == expected_response
+
+    response = client.get(f"/user/{id_user}")
+    assert response.status_code == 201
+    expected_response = {
+                            "name": "Carl Sagan",
+                            "bio": "Soy un crack",
+                            "type": "author",
+                        }
+    assert response.get_json() == expected_response
 
     # edit podcast
     response = client.put(f"/podcasts/{id_podcast}", data=podcast_data)
