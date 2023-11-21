@@ -31,6 +31,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str]
     verified: Mapped[bool] = mapped_column(default=False)
+    bio: Mapped[str] = mapped_column(nullable=True, default=None)
 
 
 class Podcast(Base):

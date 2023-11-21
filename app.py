@@ -877,17 +877,34 @@ def create_app(testing=False):
     def get_user(user_id):
         user = db.session.query(User).filter_by(id=user_id).first()
 
+        # check if user has at least one podcast created
+        podcasts = db.session.query(Podcast).filter_by(id_author=user_id).first()
+        user_type = "user"
+        if podcasts:
+            user_type = "author"
+
         return (
                 jsonify(
                     {
-                        "id": user.id,
-                        "username": user.username,
-                        "email": user.email,
-                        "verified": user.verified,
+                        "name": user.username,
+                        "bio": user.bio,
+                        "type": user_type,
                     }
                 ),
                 201,
             )
+    
+    @app.put("/user/bio")
+    @jwt_required()
+    def edit_bio():
+        user_id = get_jwt_identity()
+        user = db.session.query(User).filter_by(id=user_id).first()
+
+        new_bio = request.form.get("bio")
+        user.bio = new_bio
+        db.session.commit()
+        
+        return jsonify({"message": "Bio updated successfully"}), 201
 
     @app.get("/user/created_podcasts/<user_id>")
     def get_created_podcasts_by_user(user_id):
