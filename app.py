@@ -213,6 +213,33 @@ def create_app(testing=False):
             200,
         )
 
+    @app.get("/episodes/<id_episode>")
+    def get_episode(id_episode):
+        episode = db.session.scalars(
+            select(Episode).where(Episode.id == id_episode)
+        ).first()
+        podcast = db.session.scalars(
+            select(Podcast).where(Podcast.id == episode.id_podcast)
+        ).first()
+        user = db.session.scalars(
+            select(User).where(User.id == podcast.id_author)
+        ).first()
+        return (
+            jsonify(
+                {
+                    "id": episode.id,
+                    "description": episode.description,
+                    "title": episode.title,
+                    "audio": f"/episodes/{episode.id}/audio",
+                    "id_podcast": episode.id_podcast,
+                    "podcast_name": podcast.name,
+                    "id_author": podcast.id_author,
+                    "author_name": user.username
+                }
+            ),
+            200,
+        )
+
     @app.get("/podcasts/<id_podcast>/cover")
     def get_podcast_cover(id_podcast):
         podcast = db.session.scalars(
