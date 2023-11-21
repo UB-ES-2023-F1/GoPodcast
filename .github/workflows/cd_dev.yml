@@ -22,8 +22,6 @@ name: Continuous Deployment in Development
 on:
   push:
     branches: [ "dev" ]
-  pull_request:
-    branches: [ "dev" ]
   workflow_dispatch:
 
 permissions:
@@ -52,7 +50,7 @@ jobs:
       - name: Make envfile
         uses: SpicyPizza/create-envfile@v1
         with:
-          envkey_POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+          envkey_POSTGRES_URL: ${{ secrets.POSTGRES_URL_DEV }}
           envkey_POSTGRES_TEST_URL: ${{ secrets.POSTGRES_TEST_URL }}
           envkey_JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           envkey_FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
