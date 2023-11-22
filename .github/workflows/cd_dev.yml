@@ -53,7 +53,7 @@ jobs:
           envkey_POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           envkey_POSTGRES_TEST_URL: ${{ secrets.POSTGRES_TEST_URL }}
           envkey_JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          envkey_FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          envkey_FRONTEND_URL: ${{ secrets.FRONTEND_URL_DEV }}
           file_name: .env
 
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
