@@ -1,15 +1,11 @@
 import uuid
+from typing import List
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UUID, ForeignKey, PrimaryKeyConstraint, text
 from sqlalchemy.dialects.postgresql import BYTEA
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    MappedAsDataclass,
-    mapped_column,
-    relationship,
-)
+from sqlalchemy.orm import (DeclarativeBase, Mapped, MappedAsDataclass,
+                            mapped_column, relationship)
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
@@ -140,6 +136,28 @@ class Comment(Base):
     id_episode: Mapped[uuid.UUID] = mapped_column(ForeignKey("episode.id", ondelete='CASCADE'))
     user: Mapped[User] = relationship(init=False)
     episode: Mapped[Episode] = relationship(init=False)
+    replies: Mapped[List["Reply"]] = relationship(init=False, back_populates="comment", order_by="Reply.created_at")
+
+
+class Reply(Base):
+    __tablename__ = "reply"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        init=False,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        unique=True,
+        nullable=False,
+    )
+    content: Mapped[str]
+    created_at: Mapped[str] = mapped_column(
+        nullable=False, server_default=text("now()"), init=False
+    )
+    id_user: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id", ondelete='CASCADE'))
+    id_comment: Mapped[uuid.UUID] = mapped_column(ForeignKey("comment.id", ondelete='CASCADE'))
+    user: Mapped[User] = relationship(init=False)
+    comment: Mapped[Comment] = relationship(init=False, back_populates="replies")
 
 
 db = SQLAlchemy(model_class=Base)
