@@ -1,21 +1,12 @@
 import io
 
 from flask import Blueprint, jsonify, request, send_file
-from flask_jwt_extended import (
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import select
+from sqlalchemy.orm import contains_eager
 
-from models import (
-    Comment,
-    Episode,
-    Podcast,
-    StreamLater,
-    User,
-    User_episode,
-    db,
-)
+from models import (Comment, Episode, Podcast, Reply, StreamLater, User,
+                    User_episode, db)
 
 episodes_bp = Blueprint('episodes_bp', __name__)
 
@@ -87,7 +78,8 @@ def get_episode_comments(id_episode):
         .where(Comment.id_episode == id_episode)
         .order_by(Comment.created_at)
         .join(Comment.user)
-    ).all()
+        .outerjoin(Comment.replies)
+    ).unique().all()
     return (
         jsonify(
             [
@@ -101,6 +93,20 @@ def get_episode_comments(id_episode):
                         "id": comment.user.id,
                         "username": comment.user.username,
                     },
+                    "replies": [
+                        {
+                            "id": reply.id,
+                            "id_user": reply.id_user,
+                            "id_comment": reply.id_comment,
+                            "content": reply.content,
+                            "created_at": reply.created_at,
+                            "user": {
+                                "id": reply.user.id,
+                                "username": reply.user.username,
+                            },
+                        }
+                        for reply in comment.replies
+                    ],
                 }
                 for comment in comments
             ]
@@ -130,6 +136,28 @@ def post_episode_comments(id_episode):
     db.session.commit()
     return jsonify({"success": True}), 201
 
+@episodes_bp.post("/comments/<id_comment>/replies")
+@jwt_required()
+def post_comment_replies(id_comment):
+    comment = db.session.scalars(
+        select(Comment).where(Comment.id == id_comment)
+    ).first()
+    if not comment:
+        return jsonify({"success": False, "error": "Comment not found"}), 404
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    content = data.get("content")
+    if not content:
+        return jsonify({"error": "Specify the content of the reply"}), 400
+    reply = Reply(
+        content=content,
+        id_user=current_user_id,
+        id_comment=id_comment,
+    )
+    db.session.add(reply)
+    db.session.commit()
+    return jsonify({"success": True}), 201
+
 @episodes_bp.delete("/episodes/<id_episode>/comments/<id_comment>")
 @episodes_bp.delete("/comments/<id_comment>")
 @jwt_required()
@@ -151,6 +179,29 @@ def delete_episode_comments(id_comment, id_episode=None):
             403,
         )
     db.session.delete(comment)
+    db.session.commit()
+    return jsonify({"success": True}), 200
+
+@episodes_bp.delete("/replies/<id_reply>")
+@jwt_required()
+def delete_comment_replies(id_reply):
+    reply = db.session.scalars(
+        select(Reply).where(Reply.id == id_reply)
+    ).first()
+    if not reply:
+        return jsonify({"success": False, "error": "Reply not found"}), 404
+    current_user_id = get_jwt_identity()
+    if str(reply.id_user) != current_user_id:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "You are not the author of this reply",
+                }
+            ),
+            403,
+        )
+    db.session.delete(reply)
     db.session.commit()
     return jsonify({"success": True}), 200
 

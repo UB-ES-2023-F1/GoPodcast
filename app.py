@@ -43,6 +43,8 @@ def create_app(testing=False):
         supports_credentials=True,
     )
     JWTManager(app)
+    with app.app_context():
+        db.create_all()
 
     app.register_blueprint(users_bp)
     app.register_blueprint(podcasts_bp)
