@@ -261,7 +261,9 @@ def delete_follows(id):
 def get_notifications():
     current_user_id = get_jwt_identity()
     notifications = db.session.scalars(
-        select(Notification).where(Notification.id_user == current_user_id).order_by(Notification.created_at.desc())
+        select(Notification)
+        .where(Notification.id_user == current_user_id)
+        .order_by(Notification.created_at.desc())
     ).all()
     return jsonify(
         [
@@ -274,3 +276,12 @@ def get_notifications():
             for notification in notifications
         ]
     )
+
+
+@users_bp.delete("/notifications")
+@jwt_required()
+def delete_notifications():
+    current_user_id = get_jwt_identity()
+    db.session.query(Notification).filter_by(id_user=current_user_id).delete()
+    db.session.commit()
+    return jsonify({"success": True}), 200
