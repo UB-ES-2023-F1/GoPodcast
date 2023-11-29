@@ -261,7 +261,7 @@ def delete_follows(id):
 def get_notifications():
     current_user_id = get_jwt_identity()
     notifications = db.session.scalars(
-        select(Notification).where(Notification.id_user == current_user_id)
+        select(Notification).where(Notification.id_user == current_user_id).order_by(Notification.created_at.desc())
     ).all()
     return jsonify(
         [
@@ -269,6 +269,7 @@ def get_notifications():
                 "id": notification.id,
                 "type": notification.type,
                 "object": notification.object,
+                "created_at": notification.created_at,
             }
             for notification in notifications
         ]

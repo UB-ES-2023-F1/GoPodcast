@@ -227,6 +227,9 @@ class Notification(Base):
     )
     type: Mapped[str]
     object: Mapped[dict[str, any]] =  mapped_column(JSONB)
+    created_at: Mapped[str] = mapped_column(
+        nullable=False, server_default=text("now()"), init=False
+    )
 
 
 db = SQLAlchemy(model_class=Base)
