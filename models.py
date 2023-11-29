@@ -3,7 +3,7 @@ from typing import List
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UUID, ForeignKey, PrimaryKeyConstraint, text
-from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import BYTEA, JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -209,6 +209,24 @@ class Follow(Base):
     followed: Mapped[User] = relationship(init=False, foreign_keys=[id_followed])
 
     __table_args__ = (PrimaryKeyConstraint("id_follower", "id_followed"),)
+
+
+class Notification(Base):
+    __tablename__ = "notification"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        init=False,
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+        unique=True,
+        nullable=False,
+    )
+    id_user: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE")
+    )
+    type: Mapped[str]
+    object: Mapped[dict[str, any]] =  mapped_column(JSONB)
 
 
 db = SQLAlchemy(model_class=Base)

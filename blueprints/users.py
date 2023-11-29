@@ -13,7 +13,7 @@ from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from constants.constants import CATEGORIES
-from models import Follow, Podcast, User, db
+from models import Follow, Notification, Podcast, User, db
 
 users_bp = Blueprint("users_bp", __name__)
 
@@ -254,3 +254,22 @@ def delete_follows(id):
     db.session.delete(follow)
     db.session.commit()
     return jsonify({"success": True}), 200
+
+
+@users_bp.get("/notifications")
+@jwt_required()
+def get_notifications():
+    current_user_id = get_jwt_identity()
+    notifications = db.session.scalars(
+        select(Notification).where(Notification.id_user == current_user_id)
+    ).all()
+    return jsonify(
+        [
+            {
+                "id": notification.id,
+                "type": notification.type,
+                "object": notification.object,
+            }
+            for notification in notifications
+        ]
+    )
