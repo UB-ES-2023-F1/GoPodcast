@@ -196,4 +196,19 @@ class Reply(Base):
     comment: Mapped[Comment] = relationship(init=False, back_populates="replies")
 
 
+class Follow(Base):
+    __tablename__ = "follow"
+
+    id_follower: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE")
+    )
+    id_followed: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE")
+    )
+    
+    followed: Mapped[User] = relationship(init=False, foreign_keys=[id_followed])
+
+    __table_args__ = (PrimaryKeyConstraint("id_follower", "id_followed"),)
+
+
 db = SQLAlchemy(model_class=Base)
