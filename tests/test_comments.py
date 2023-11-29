@@ -141,6 +141,80 @@ def test_get_comments(app, data):
     ]
     assert sorted(response.json, key=lambda x: x["content"]) == expected_response
 
+    response = client.get(f"/episodes/{data['id_episode']}")
+    assert response.status_code == 200
+    expected_response = {
+        "id": str(data['id_episode']),
+        "description": "description",
+        "title": "episode",
+        "audio": f"/episodes/{data['id_episode']}/audio",
+        "id_podcast": str(data['id_podcast']),
+        "podcast_name": "podcast",
+        "id_author": str(data['id_user1']),
+        "author_name": "test1",
+        "comments": [
+        {
+            "id": str(data["id_comment2"]),
+            "content": "comment2",
+            "created_at": ANY,
+            "id_episode": str(data["id_episode"]),
+            "id_user": str(data["id_user1"]),
+            "replies": [],
+            "user": {
+                "id": str(data["id_user1"]),
+                "username": "test1",
+            },
+        },
+        {
+            "id": str(data["id_comment1"]),
+            "content": "comment1",
+            "created_at": ANY,
+            "id_episode": str(data["id_episode"]),
+            "id_user": str(data["id_user1"]),
+            "replies": [
+                {
+                    "id": str(data["id_reply1"]),
+                    "content": "reply1",
+                    "created_at": ANY,
+                    "id_comment": str(data["id_comment1"]),
+                    "id_user": str(data["id_user1"]),
+                    "user": {
+                        "id": str(data["id_user1"]),
+                        "username": "test1",
+                    },
+                },
+                {
+                    "id": str(data["id_reply2"]),
+                    "content": "reply2",
+                    "created_at": ANY,
+                    "id_comment": str(data["id_comment1"]),
+                    "id_user": str(data["id_user2"]),
+                    "user": {
+                        "id": str(data["id_user2"]),
+                        "username": "test2",
+                    },
+                },
+            ],
+            "user": {
+                "id": str(data["id_user1"]),
+                "username": "test1",
+            },
+        },
+        {
+            "id": str(data["id_comment3"]),
+            "content": "comment3",
+            "created_at": ANY,
+            "id_episode": str(data["id_episode"]),
+            "id_user": str(data["id_user2"]),
+            "replies": [],
+            "user": {
+                "id": str(data["id_user2"]),
+                "username": "test2",
+            },
+        },]}
+    # assert sorted(response.json, key=lambda x: x["content"]) == expected_response
+    assert response.get_json() == expected_response
+
 
 def test_post_comment(app, data):
     client = app.test_client()

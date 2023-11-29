@@ -15,9 +15,18 @@ def get_episode(id_episode):
     episode = db.session.scalars(
         select(Episode).where(Episode.id == id_episode)
     ).first()
+    if not episode:
+        return jsonify({"success": False, "error": "Episode not found"}), 404
     podcast = db.session.scalars(
         select(Podcast).where(Podcast.id == episode.id_podcast)
     ).first()
+    comments = db.session.scalars(
+        select(Comment)
+        .where(Comment.id_episode == id_episode)
+        .order_by(Comment.created_at)
+        .join(Comment.user)
+        .outerjoin(Comment.replies)
+    ).unique().all()
     user = db.session.scalars(select(User).where(User.id == podcast.id_author)).first()
     return (
         jsonify(
@@ -30,6 +39,34 @@ def get_episode(id_episode):
                 "podcast_name": podcast.name,
                 "id_author": podcast.id_author,
                 "author_name": user.username,
+                "comments": [
+                    {
+                        "id": comment.id,
+                        "id_user": comment.id_user,
+                        "id_episode": comment.id_episode,
+                        "content": comment.content,
+                        "created_at": comment.created_at,
+                        "user": {
+                            "id": comment.user.id,
+                            "username": comment.user.username,
+                        },
+                        "replies": [
+                            {
+                                "id": reply.id,
+                                "id_user": reply.id_user,
+                                "id_comment": reply.id_comment,
+                                "content": reply.content,
+                                "created_at": reply.created_at,
+                                "user": {
+                                    "id": reply.user.id,
+                                    "username": reply.user.username,
+                                },
+                            }
+                            for reply in comment.replies
+                        ],
+                    }
+                    for comment in comments
+                ]
             }
         ),
         200,
