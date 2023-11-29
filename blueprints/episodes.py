@@ -5,10 +5,10 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import select
 from sqlalchemy.orm import contains_eager
 
-from models import (Comment, Episode, Podcast, Reply, StreamLater, User,
-                    User_episode, db)
+from models import Comment, Episode, Podcast, Reply, StreamLater, User, User_episode, db
 
-episodes_bp = Blueprint('episodes_bp', __name__)
+episodes_bp = Blueprint("episodes_bp", __name__)
+
 
 @episodes_bp.get("/episodes/<id_episode>")
 def get_episode(id_episode):
@@ -18,9 +18,7 @@ def get_episode(id_episode):
     podcast = db.session.scalars(
         select(Podcast).where(Podcast.id == episode.id_podcast)
     ).first()
-    user = db.session.scalars(
-        select(User).where(User.id == podcast.id_author)
-    ).first()
+    user = db.session.scalars(select(User).where(User.id == podcast.id_author)).first()
     return (
         jsonify(
             {
@@ -31,11 +29,12 @@ def get_episode(id_episode):
                 "id_podcast": episode.id_podcast,
                 "podcast_name": podcast.name,
                 "id_author": podcast.id_author,
-                "author_name": user.username
+                "author_name": user.username,
             }
         ),
         200,
     )
+
 
 @episodes_bp.get("/podcasts/<id_podcast>/episodes")
 def get_episodes_of_podcast(id_podcast):
@@ -57,6 +56,7 @@ def get_episodes_of_podcast(id_podcast):
         200,
     )
 
+
 @episodes_bp.get("/episodes/<id_episode>/audio")
 def get_episode_audio(id_episode):
     episode = db.session.scalars(
@@ -66,6 +66,7 @@ def get_episode_audio(id_episode):
         return jsonify({"success": False, "error": "Episode not found"}), 404
     return send_file(io.BytesIO(episode.audio), mimetype="audio/mp3")
 
+
 @episodes_bp.get("/episodes/<id_episode>/comments")
 def get_episode_comments(id_episode):
     episode = db.session.scalars(
@@ -73,13 +74,17 @@ def get_episode_comments(id_episode):
     ).first()
     if not episode:
         return jsonify({"success": False, "error": "Episode not found"}), 404
-    comments = db.session.scalars(
-        select(Comment)
-        .where(Comment.id_episode == id_episode)
-        .order_by(Comment.created_at)
-        .join(Comment.user)
-        .outerjoin(Comment.replies)
-    ).unique().all()
+    comments = (
+        db.session.scalars(
+            select(Comment)
+            .where(Comment.id_episode == id_episode)
+            .order_by(Comment.created_at)
+            .join(Comment.user)
+            .outerjoin(Comment.replies)
+        )
+        .unique()
+        .all()
+    )
     return (
         jsonify(
             [
@@ -114,6 +119,7 @@ def get_episode_comments(id_episode):
         200,
     )
 
+
 @episodes_bp.post("/episodes/<id_episode>/comments")
 @jwt_required()
 def post_episode_comments(id_episode):
@@ -136,6 +142,7 @@ def post_episode_comments(id_episode):
     db.session.commit()
     return jsonify({"success": True}), 201
 
+
 @episodes_bp.post("/comments/<id_comment>/replies")
 @jwt_required()
 def post_comment_replies(id_comment):
@@ -157,6 +164,7 @@ def post_comment_replies(id_comment):
     db.session.add(reply)
     db.session.commit()
     return jsonify({"success": True}), 201
+
 
 @episodes_bp.delete("/episodes/<id_episode>/comments/<id_comment>")
 @episodes_bp.delete("/comments/<id_comment>")
@@ -182,12 +190,11 @@ def delete_episode_comments(id_comment, id_episode=None):
     db.session.commit()
     return jsonify({"success": True}), 200
 
+
 @episodes_bp.delete("/replies/<id_reply>")
 @jwt_required()
 def delete_comment_replies(id_reply):
-    reply = db.session.scalars(
-        select(Reply).where(Reply.id == id_reply)
-    ).first()
+    reply = db.session.scalars(select(Reply).where(Reply.id == id_reply)).first()
     if not reply:
         return jsonify({"success": False, "error": "Reply not found"}), 404
     current_user_id = get_jwt_identity()
@@ -204,6 +211,7 @@ def delete_comment_replies(id_reply):
     db.session.delete(reply)
     db.session.commit()
     return jsonify({"success": True}), 200
+
 
 @episodes_bp.post("/podcasts/<id_podcast>/episodes")
 @jwt_required()
@@ -222,9 +230,7 @@ def post_episode(id_podcast):
         return jsonify({"mensaje": "title field is mandatory"}), 400
 
     filtered_episode = (
-        db.session.query(Episode)
-        .filter_by(id_podcast=id_podcast, title=title)
-        .first()
+        db.session.query(Episode).filter_by(id_podcast=id_podcast, title=title).first()
     )
 
     if filtered_episode is not None:
@@ -244,6 +250,7 @@ def post_episode(id_podcast):
     db.session.commit()
 
     return jsonify(success=True, id=episode.id), 201
+
 
 @episodes_bp.put("/update_current_sec/<id_episode>")
 @jwt_required()
@@ -284,8 +291,8 @@ def update_current_sec(id_episode):
 
     else:
         return jsonify({"error": "Specify the current minute"}), 400
-    
-    
+
+
 @episodes_bp.get("/get_current_sec/<id_episode>")
 @jwt_required()
 def get_current_sec(id_episode):
@@ -327,7 +334,7 @@ def delete_episode(id_episode):
 
     if str(podcast.id_author) != current_user_id:
         return jsonify({"error": "User can only edit their own creations"}), 404
-    
+
     # all dependencies will be automatically deleted
     # because we set an "on delete cascade" behaviour
 
@@ -360,7 +367,7 @@ def edit_episode(id_episode):
 
     if str(podcast.id_author) != current_user_id:
         return jsonify({"error": "User can only edit their own creations"}), 404
-    
+
     if new_title and new_title != "" and new_title != episode.title:
         filtered_episode = (
             db.session.query(Episode)
@@ -372,28 +379,29 @@ def edit_episode(id_episode):
             return (
                 jsonify(
                     {
-                    "mensaje": f"This podcast already has an episode with the title: {new_title}"
-                }
+                        "mensaje": f"This podcast already has an episode with the title: {new_title}"
+                    }
                 ),
                 400,
             )
         else:
             episode.title = new_title
-    
-    if new_audio: episode.audio = new_audio
-    if new_description: episode.description = new_description
+
+    if new_audio:
+        episode.audio = new_audio
+    if new_description:
+        episode.description = new_description
 
     db.session.commit()
     return jsonify({"message": "Episode updated successfully"}), 201
+
 
 @episodes_bp.get("/stream_later")
 @jwt_required()
 def get_stream_later():
     current_user_id = get_jwt_identity()
     stream_later = db.session.scalars(
-        select(StreamLater)
-        .filter_by(id_user=current_user_id)
-        .join(StreamLater.episode)
+        select(StreamLater).filter_by(id_user=current_user_id).join(StreamLater.episode)
     ).all()
     return (
         jsonify(
@@ -409,6 +417,7 @@ def get_stream_later():
         ),
         200,
     )
+
 
 @episodes_bp.post("/stream_later")
 @jwt_required()
@@ -438,6 +447,7 @@ def post_stream_later():
     db.session.add(stream_later)
     db.session.commit()
     return jsonify({"success": True}), 201
+
 
 @episodes_bp.delete("/stream_later/<id>")
 @jwt_required()

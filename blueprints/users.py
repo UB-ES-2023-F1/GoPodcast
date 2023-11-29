@@ -8,18 +8,15 @@ from flask_jwt_extended import (
     set_access_cookies,
     unset_jwt_cookies,
 )
+from Levenshtein import distance as levenshtein_distance
+from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from constants.constants import CATEGORIES
-from models import (
-    Podcast,
-    User,
-    db,
-)
+from models import Follow, Podcast, User, db
 
-from Levenshtein import distance as levenshtein_distance
+users_bp = Blueprint("users_bp", __name__)
 
-users_bp = Blueprint('users_bp', __name__)
 
 @users_bp.post("/user")
 def create_user():
@@ -75,6 +72,7 @@ def create_user():
         201,
     )
 
+
 @users_bp.post("/login")
 def login_user():
     data = request.get_json()
@@ -92,57 +90,27 @@ def login_user():
     set_access_cookies(resp, access_token)
     return resp, 200
 
+
 @users_bp.post("/logout")
 def logout():
     response = jsonify({"success": True})
     unset_jwt_cookies(response)
     return response
 
+
 @users_bp.get("/protected")
 @jwt_required()
 def protected():
     current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200 
+    return jsonify(logged_in_as=current_user), 200
+
 
 @users_bp.get("/search/user/<username>")
 def search_user(username):
     # username attribute is unique, so there can only be 1 or 0 matches
     user = db.session.query(User).filter_by(username=username).first()
 
-    if user: # perfect match
-        return (
-            jsonify(
-                [{
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "verified": user.verified,
-                    "match_percentatge": 100
-                }]
-            ),
-            201,
-        )
-    
-    else: # look for partial match
-        # get all the names of the database
-        names_query = db.session.query(User.username).all()
-        names = [n[0] for n in names_query]
-
-        # compute Levenshtein distance of all of them, keep values above a threshold
-        thr = 0.4
-        
-        names_above_thr = {} # dict with (key,value)=(name,distance)
-        for name in names:
-            # just consider matches with normalized distance above a threshold
-            d = levenshtein_distance(name, username) / max(len(name),len(username))
-            if d <= thr:
-                names_above_thr[name] = d
-
-        if not names_above_thr:
-            return jsonify({"message": "No good matches found"}), 404
-        
-        # return best matches above the threshold
-        usernames = db.session.query(User).filter(User.username.in_(names_above_thr)).all()
+    if user:  # perfect match
         return (
             jsonify(
                 [
@@ -151,14 +119,54 @@ def search_user(username):
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
-                        "match_percentatge": round(float((1-names_above_thr[user.username])*100),2)
+                        "match_percentatge": 100,
+                    }
+                ]
+            ),
+            201,
+        )
+
+    else:  # look for partial match
+        # get all the names of the database
+        names_query = db.session.query(User.username).all()
+        names = [n[0] for n in names_query]
+
+        # compute Levenshtein distance of all of them, keep values above a threshold
+        thr = 0.4
+
+        names_above_thr = {}  # dict with (key,value)=(name,distance)
+        for name in names:
+            # just consider matches with normalized distance above a threshold
+            d = levenshtein_distance(name, username) / max(len(name), len(username))
+            if d <= thr:
+                names_above_thr[name] = d
+
+        if not names_above_thr:
+            return jsonify({"message": "No good matches found"}), 404
+
+        # return best matches above the threshold
+        usernames = (
+            db.session.query(User).filter(User.username.in_(names_above_thr)).all()
+        )
+        return (
+            jsonify(
+                [
+                    {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "verified": user.verified,
+                        "match_percentatge": round(
+                            float((1 - names_above_thr[user.username]) * 100), 2
+                        ),
                     }
                     for user in usernames
                 ]
             ),
             200,
         )
-    
+
+
 @users_bp.get("/user/<user_id>")
 def get_user(user_id):
     user = db.session.query(User).filter_by(id=user_id).first()
@@ -170,15 +178,16 @@ def get_user(user_id):
         user_type = "author"
 
     return (
-            jsonify(
-                {
-                    "name": user.username,
-                    "bio": user.bio,
-                    "type": user_type,
-                }
-            ),
-            201,
-        )
+        jsonify(
+            {
+                "name": user.username,
+                "bio": user.bio,
+                "type": user_type,
+            }
+        ),
+        201,
+    )
+
 
 @users_bp.put("/user/bio")
 @jwt_required()
@@ -189,5 +198,59 @@ def edit_bio():
     new_bio = request.form.get("bio")
     user.bio = new_bio
     db.session.commit()
-    
     return jsonify({"message": "Bio updated successfully"}), 201
+
+
+@users_bp.get("/follows")
+@jwt_required()
+def get_follows():
+    user_id = get_jwt_identity()
+    follows = db.session.scalars(
+        select(Follow).filter_by(id_follower=user_id).join(Follow.followed)
+    ).all()
+    return (
+        jsonify(
+            [{"id": f.id_followed, "username": f.followed.username} for f in follows]
+        ),
+        200,
+    )
+
+
+@users_bp.post("/follows")
+@jwt_required()
+def post_follows():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    id = data.get("id")
+    if not id:
+        return jsonify({"message": "Specify the user id"}), 400
+    user = db.session.scalars(select(User).where(User.id == id)).first()
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    follow = db.session.scalars(
+        select(Follow).where(
+            Follow.id_follower == current_user_id, Follow.id_followed == id
+        )
+    ).first()
+    if follow:
+        return jsonify({"error": "User already followed"}), 400
+    new_follow = Follow(id_follower=current_user_id, id_followed=id)
+    db.session.add(new_follow)
+    db.session.commit()
+    return jsonify({"success": True}), 201
+
+
+@users_bp.delete("/follows/<id>")
+@jwt_required()
+def delete_follows(id):
+    current_user_id = get_jwt_identity()
+    follow = db.session.scalars(
+        select(Follow).where(
+            Follow.id_follower == current_user_id, Follow.id_followed == id
+        )
+    ).first()
+    if not follow:
+        return jsonify({"error": "User not followed"}), 400
+    db.session.delete(follow)
+    db.session.commit()
+    return jsonify({"success": True}), 200
