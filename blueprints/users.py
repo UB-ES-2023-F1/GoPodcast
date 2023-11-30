@@ -9,6 +9,8 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
 )
 from Levenshtein import distance as levenshtein_distance
+from unidecode import unidecode
+
 from sqlalchemy import select
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -119,7 +121,7 @@ def search_user(username):
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
-                        "match_percentatge": 100,
+                        "match_percentage": 100,
                     }
                 ]
             ),
@@ -127,17 +129,22 @@ def search_user(username):
         )
 
     else:  # look for partial match
+        plain_username = unidecode(username).lower() # we do not consider uppercase and accents
+
         # get all the names of the database
         names_query = db.session.query(User.username).all()
         names = [n[0] for n in names_query]
 
         # compute Levenshtein distance of all of them, keep values above a threshold
-        thr = 0.4
+        thr = 0.45
 
         names_above_thr = {}  # dict with (key,value)=(name,distance)
         for name in names:
+            plain_name = unidecode(name).lower() # we do not consider uppercase and accents
             # just consider matches with normalized distance above a threshold
-            d = levenshtein_distance(name, username) / max(len(name), len(username))
+            d = levenshtein_distance(plain_name, plain_username) / max(
+                len(plain_name), len(plain_username)
+            )
             if d <= thr:
                 names_above_thr[name] = d
 
@@ -148,23 +155,23 @@ def search_user(username):
         usernames = (
             db.session.query(User).filter(User.username.in_(names_above_thr)).all()
         )
-        return (
-            jsonify(
-                [
+
+        user_list = [
                     {
                         "id": user.id,
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
-                        "match_percentatge": round(
+                        "match_percentage": round(
                             float((1 - names_above_thr[user.username]) * 100), 2
                         ),
                     }
                     for user in usernames
                 ]
-            ),
-            200,
-        )
+
+        sorted_user_list = sorted(user_list, key=lambda x: x["match_percentage"], reverse=True)
+
+        return jsonify(sorted_user_list), 200
 
 
 @users_bp.get("/user/<user_id>")

@@ -215,6 +215,40 @@ def test_get_comments(app, data):
     # assert sorted(response.json, key=lambda x: x["content"]) == expected_response
     assert response.get_json() == expected_response
 
+    response = client.get(f"/episodes/{data['id_episode']}/comments/{data['id_comment1']}/replies")
+    assert response.status_code == 200
+    expected_response = [
+                            {
+                                "id": str(data["id_reply1"]),
+                                "content": "reply1",
+                                "created_at": ANY,
+                                "id_comment": str(data["id_comment1"]),
+                                "id_user": str(data["id_user1"]),
+                                "user": {
+                                    "id": str(data["id_user1"]),
+                                    "username": "test1",
+                                },
+                            },
+                            {
+                                "id": str(data["id_reply2"]),
+                                "content": "reply2",
+                                "created_at": ANY,
+                                "id_comment": str(data["id_comment1"]),
+                                "id_user": str(data["id_user2"]),
+                                "user": {
+                                    "id": str(data["id_user2"]),
+                                    "username": "test2",
+                                },
+                            },
+                        ]
+    assert response.get_json() == expected_response
+
+    # test for comment with no replies
+    response = client.get(f"/episodes/{data['id_episode']}/comments/{data['id_comment2']}/replies")
+    assert response.status_code == 200
+    expected_response = []
+    assert response.get_json() == expected_response
+
 
 def test_post_comment(app, data):
     client = app.test_client()
