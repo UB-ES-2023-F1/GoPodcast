@@ -73,6 +73,37 @@ def get_episode(id_episode):
         200,
     )
 
+@episodes_bp.get("/episodes/<id_episode>/comments/<id_comment>/replies")
+def get_replies_of_comment(id_episode, id_comment):
+    episode = db.session.scalars(
+        select(Episode).where(Episode.id == id_episode)
+    ).first()
+    if not episode:
+        return jsonify({"success": False, "error": "Episode not found"}), 404
+    comment = db.session.scalars(
+        select(Comment).where(Comment.id == id_comment)
+    ).first()
+    if not comment:
+        return jsonify({"success": False, "error": "Comment not found"}), 404
+    return (
+        jsonify(
+            [
+                {
+                    "id": reply.id,
+                    "id_user": reply.id_user,
+                    "id_comment": reply.id_comment,
+                    "content": reply.content,
+                    "created_at": reply.created_at,
+                    "user": {
+                        "id": reply.user.id,
+                        "username": reply.user.username,
+                    },
+                }
+                for reply in comment.replies
+            ]
+        ),
+        200,
+    )
 
 @episodes_bp.get("/podcasts/<id_podcast>/episodes")
 def get_episodes_of_podcast(id_podcast):
