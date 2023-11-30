@@ -108,7 +108,7 @@ def test_search_perfect_match(app):
     assert response.get_json() == expected_response
 
     # search by podcast, partial matches
-    response = client.get("/search/podcast/Programin for dumies")
+    response = client.get("/search/podcast/programin for dúmies")
     assert response.status_code == 200
     expected_response = [
                             {
@@ -143,7 +143,7 @@ def test_search_perfect_match(app):
     assert response.get_json() == expected_response
 
     # search by user, partial matches
-    response = client.get("/search/user/Carlos Sagan")
+    response = client.get("/search/user/cárlös Sagan")
     assert response.status_code == 200
     expected_response = [
                             {

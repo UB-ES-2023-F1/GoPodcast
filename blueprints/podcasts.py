@@ -3,7 +3,10 @@ import os
 
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
+
 from Levenshtein import distance as levenshtein_distance
+from unidecode import unidecode
+
 from sqlalchemy import func, select
 
 from constants.constants import CATEGORIES
@@ -268,18 +271,21 @@ def search_podcast(podcast_name):
         )
 
     else:  # look for partial match
+        plain_podcast_name = unidecode(podcast_name).lower() # we do not consider uppercase and accents
+
         # get all the names of the database
         names_query = db.session.query(Podcast.name).all()
         names = [n[0] for n in names_query]
 
         # compute Levenshtein distance of all of them, keep values above a threshold
-        thr = 0.4
+        thr = 0.45
 
         names_above_thr = {}  # dict with (key,value)=(name,distance)
         for name in names:
+            plain_name = unidecode(name).lower() # we do not consider uppercase and accents
             # just consider matches with normalized distance above a threshold
-            d = levenshtein_distance(name, podcast_name) / max(
-                len(name), len(podcast_name)
+            d = levenshtein_distance(plain_name, plain_podcast_name) / max(
+                len(plain_name), len(plain_podcast_name)
             )
             if d <= thr:
                 names_above_thr[name] = d
