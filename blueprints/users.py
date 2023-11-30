@@ -121,7 +121,7 @@ def search_user(username):
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
-                        "match_percentatge": 100,
+                        "match_percentage": 100,
                     }
                 ]
             ),
@@ -155,23 +155,23 @@ def search_user(username):
         usernames = (
             db.session.query(User).filter(User.username.in_(names_above_thr)).all()
         )
-        return (
-            jsonify(
-                [
+
+        user_list = [
                     {
                         "id": user.id,
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
-                        "match_percentatge": round(
+                        "match_percentage": round(
                             float((1 - names_above_thr[user.username]) * 100), 2
                         ),
                     }
                     for user in usernames
                 ]
-            ),
-            200,
-        )
+
+        sorted_user_list = sorted(user_list, key=lambda x: x["match_percentage"], reverse=True)
+
+        return jsonify(sorted_user_list), 200
 
 
 @users_bp.get("/user/<user_id>")

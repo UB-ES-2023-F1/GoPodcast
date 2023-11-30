@@ -263,7 +263,7 @@ def search_podcast(podcast_name):
                             "username": podcast.author.username,
                         },
                         "category": podcast.category,
-                        "match_percentatge": 100,
+                        "match_percentage": 100,
                     }
                 ]
             ),
@@ -297,9 +297,8 @@ def search_podcast(podcast_name):
         podcasts = (
             db.session.query(Podcast).filter(Podcast.name.in_(names_above_thr)).all()
         )
-        return (
-            jsonify(
-                [
+
+        podcast_list = [
                     {
                         "id": podcast.id,
                         "id_author": podcast.id_author,
@@ -312,15 +311,16 @@ def search_podcast(podcast_name):
                         "summary": podcast.summary,
                         "description": podcast.description,
                         "category": podcast.category,
-                        "match_percentatge": round(
+                        "match_percentage": round(
                             float((1 - names_above_thr[podcast.name]) * 100), 2
                         ),
                     }
                     for podcast in podcasts
                 ]
-            ),
-            200,
-        )
+        
+        sorted_podcast_list = sorted(podcast_list, key=lambda x: x["match_percentage"], reverse=True)
+        
+        return jsonify(sorted_podcast_list), 200
 
 
 @podcasts_bp.get("/podcasts/categories/<category>")

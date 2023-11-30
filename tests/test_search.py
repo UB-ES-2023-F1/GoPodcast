@@ -91,7 +91,7 @@ def test_search_perfect_match(app):
                             "summary" : "summary",
                             "description" : "buenisimo",
                             "category": None,
-                            "match_percentatge": 100
+                            "match_percentage": 100
                         }]
     assert response.get_json() == expected_response
 
@@ -103,7 +103,7 @@ def test_search_perfect_match(app):
                             "username": "Carl Sagan",
                             "email": "test@example.com",
                             "verified": True,
-                            "match_percentatge": 100
+                            "match_percentage": 100
                         }]
     assert response.get_json() == expected_response
 
@@ -123,7 +123,7 @@ def test_search_perfect_match(app):
                                 "summary" : "summary",
                                 "description" : "buenisimo",
                                 "category": None,
-                                "match_percentatge": 86.96
+                                "match_percentage": 86.96
                             },
                             {
                                 "id": str(id_podcast2),
@@ -137,7 +137,7 @@ def test_search_perfect_match(app):
                                 "summary" : "summary",
                                 "description" : "buenisimo",
                                 "category": None,
-                                "match_percentatge": 65.00
+                                "match_percentage": 65.00
                             }
                         ]
     assert response.get_json() == expected_response
@@ -151,14 +151,14 @@ def test_search_perfect_match(app):
                                 "username": "Carl Sagan",
                                 "email": "test@example.com",
                                 "verified": True,
-                                "match_percentatge": 83.33
+                                "match_percentage": 83.33
                             },
                             {
                                 "id": str(id_user2),
                                 "username": "Carlos Latre",
                                 "email": "test2@example.com",
                                 "verified": True,
-                                "match_percentatge": 66.67
+                                "match_percentage": 66.67
                             }
                         ]
     assert response.get_json() == expected_response
