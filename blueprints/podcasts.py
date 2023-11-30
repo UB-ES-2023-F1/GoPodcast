@@ -2,25 +2,16 @@ import io
 import os
 
 from flask import Blueprint, jsonify, request, send_file
-from flask_jwt_extended import (
-    get_jwt_identity,
-    jwt_required,
-)
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from Levenshtein import distance as levenshtein_distance
 from sqlalchemy import func, select
 
 from constants.constants import CATEGORIES
-from models import (
-    Episode,
-    Favorite,
-    Podcast,
-    User,
-    User_episode,
-    db,
-)
+from models import Episode, Favorite, Podcast, User, User_episode, db
+from utils.notifications import notify_new_podcast
 
-from Levenshtein import distance as levenshtein_distance
+podcasts_bp = Blueprint("podcasts_bp", __name__)
 
-podcasts_bp = Blueprint('podcasts_bp', __name__)
 
 @podcasts_bp.get("/podcasts")
 def get_podcasts():
@@ -51,6 +42,7 @@ def get_podcasts():
         200,
     )
 
+
 @podcasts_bp.get("/podcasts/<id_podcast>")
 def get_podcast(id_podcast):
     podcast = db.session.query(Podcast).filter_by(id=id_podcast).first()
@@ -76,6 +68,7 @@ def get_podcast(id_podcast):
             ),
             201,
         )
+
 
 @podcasts_bp.get("/user/created_podcasts/<user_id>")
 def get_podcasts_created_by_user(user_id):
@@ -105,6 +98,7 @@ def get_podcasts_created_by_user(user_id):
             ),
             200,
         )
+
 
 @podcasts_bp.get("/podcasts/<id_podcast>/cover")
 def get_podcast_cover(id_podcast):
@@ -142,9 +136,7 @@ def post_podcast():
     if filtered_podcast is not None:
         return (
             jsonify(
-                {
-                    "mensaje": f"This user already has a podcast with the name: {name}"
-                }
+                {"mensaje": f"This user already has a podcast with the name: {name}"}
             ),
             400,
         )
@@ -160,7 +152,10 @@ def post_podcast():
     db.session.add(podcast)
     db.session.commit()
 
+    notify_new_podcast(podcast, db.session)
+
     return jsonify(success=True, id=podcast.id), 201
+
 
 @podcasts_bp.put("/podcasts/<id_podcast>")
 @jwt_required()
@@ -169,7 +164,7 @@ def edit_podcast(id_podcast):
 
     new_cover = request.files.get("cover")
     if new_cover:
-        new_cover=new_cover.read()
+        new_cover = new_cover.read()
     new_name = request.form.get("name")
     new_summary = request.form.get("summary")
     new_description = request.form.get("description")
@@ -178,7 +173,7 @@ def edit_podcast(id_podcast):
     # Let's first check the validity of the new data
     if new_category != None and new_category not in CATEGORIES:
         return jsonify({"message": "Category not allowed"}), 401
-    
+
     podcast = db.session.scalars(
         select(Podcast).where(Podcast.id == id_podcast)
     ).first()
@@ -188,7 +183,7 @@ def edit_podcast(id_podcast):
 
     if str(podcast.id_author) != current_user_id:
         return jsonify({"error": "User can only edit their own creations"}), 404
-    
+
     if new_name and new_name != "" and new_name != podcast.name:
         filtered_podcast = (
             db.session.query(Podcast)
@@ -208,14 +203,18 @@ def edit_podcast(id_podcast):
         else:
             podcast.name = new_name
 
-    
-    if new_cover: podcast.cover = new_cover
-    if new_summary: podcast.summary = new_summary
-    if new_description: podcast.description = new_description
-    if new_category: podcast.category = new_category
+    if new_cover:
+        podcast.cover = new_cover
+    if new_summary:
+        podcast.summary = new_summary
+    if new_description:
+        podcast.description = new_description
+    if new_category:
+        podcast.category = new_category
 
     db.session.commit()
     return jsonify({"message": "Podcast updated successfully"}), 201
+
 
 @podcasts_bp.delete("/podcasts/<id_podcast>")
 @jwt_required()
@@ -231,7 +230,7 @@ def delete_podcast(id_podcast):
 
     if str(podcast.id_author) != current_user_id:
         return jsonify({"error": "User can only delete their own creations"}), 404
-    
+
     # all episodes and other dependencies will be automatically deleted
     # because we set an "on delete cascade" behaviour
 
@@ -239,44 +238,49 @@ def delete_podcast(id_podcast):
     db.session.commit()
     return jsonify({"success": True}), 200
 
+
 @podcasts_bp.get("/search/podcast/<podcast_name>")
 def search_podcast(podcast_name):
     # name attribute is unique, so there can only be 1 or 0 matches
     podcast = db.session.query(Podcast).filter_by(name=podcast_name).first()
 
-    if podcast: # perfect match
+    if podcast:  # perfect match
         return (
             jsonify(
-                [{
-                    "id": podcast.id,
-                    "description": podcast.description,
-                    "name": podcast.name,
-                    "summary": podcast.summary,
-                    "cover": f"/podcasts/{podcast.id}/cover",
-                    "id_author": podcast.id_author,
-                    "author": {
-                        "id": podcast.id_author,
-                        "username": podcast.author.username,
-                    },
-                    "category": podcast.category,
-                    "match_percentatge": 100
-                }]
+                [
+                    {
+                        "id": podcast.id,
+                        "description": podcast.description,
+                        "name": podcast.name,
+                        "summary": podcast.summary,
+                        "cover": f"/podcasts/{podcast.id}/cover",
+                        "id_author": podcast.id_author,
+                        "author": {
+                            "id": podcast.id_author,
+                            "username": podcast.author.username,
+                        },
+                        "category": podcast.category,
+                        "match_percentatge": 100,
+                    }
+                ]
             ),
             201,
         )
-    
-    else: # look for partial match
+
+    else:  # look for partial match
         # get all the names of the database
         names_query = db.session.query(Podcast.name).all()
         names = [n[0] for n in names_query]
 
         # compute Levenshtein distance of all of them, keep values above a threshold
         thr = 0.4
-        
-        names_above_thr = {} # dict with (key,value)=(name,distance)
+
+        names_above_thr = {}  # dict with (key,value)=(name,distance)
         for name in names:
             # just consider matches with normalized distance above a threshold
-            d = levenshtein_distance(name, podcast_name) / max(len(name),len(podcast_name))
+            d = levenshtein_distance(name, podcast_name) / max(
+                len(name), len(podcast_name)
+            )
             if d <= thr:
                 names_above_thr[name] = d
 
@@ -284,7 +288,9 @@ def search_podcast(podcast_name):
             return jsonify({"message": "No good matches found"}), 404
 
         # return best matches above the threshold
-        podcasts = db.session.query(Podcast).filter(Podcast.name.in_(names_above_thr)).all()
+        podcasts = (
+            db.session.query(Podcast).filter(Podcast.name.in_(names_above_thr)).all()
+        )
         return (
             jsonify(
                 [
@@ -300,14 +306,17 @@ def search_podcast(podcast_name):
                         "summary": podcast.summary,
                         "description": podcast.description,
                         "category": podcast.category,
-                        "match_percentatge": round(float((1-names_above_thr[podcast.name])*100),2)
+                        "match_percentatge": round(
+                            float((1 - names_above_thr[podcast.name]) * 100), 2
+                        ),
                     }
                     for podcast in podcasts
                 ]
             ),
             200,
         )
-    
+
+
 @podcasts_bp.get("/podcasts/categories/<category>")
 def get_podcasts_of_category(category):
     if category not in CATEGORIES:
@@ -341,9 +350,11 @@ def get_podcasts_of_category(category):
         200,
     )
 
+
 @podcasts_bp.get("/categories/images/<filename>")
 def get_image_of_category(filename):
-    return send_file(os.path.join('constants', filename))
+    return send_file(os.path.join("constants", filename))
+
 
 @podcasts_bp.get("/categories")
 def get_categories():
@@ -354,12 +365,12 @@ def get_categories():
             ext = ".jpg"
         else:
             ext = ".png"
-        c.append({
-                    "image_url": f"/categories/images/{category}"+ext,
-                    "title": category
-                })
-        
-    return jsonify(c),200
+        c.append(
+            {"image_url": f"/categories/images/{category}" + ext, "title": category}
+        )
+
+    return jsonify(c), 200
+
 
 @podcasts_bp.get("/populars")
 def get_populars():
@@ -421,7 +432,8 @@ def get_populars():
             }
         )
     return jsonify(data), 201
-    
+
+
 @podcasts_bp.get("/favorites")
 @jwt_required()
 def get_favorites():
@@ -454,6 +466,7 @@ def get_favorites():
         200,
     )
 
+
 @podcasts_bp.post("/favorites")
 @jwt_required()
 def post_favorites():
@@ -482,6 +495,7 @@ def post_favorites():
     db.session.add(favorite)
     db.session.commit()
     return jsonify({"success": True}), 201
+
 
 @podcasts_bp.delete("/favorites/<id>")
 @jwt_required()

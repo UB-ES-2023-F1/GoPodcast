@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import contains_eager
 
 from models import Comment, Episode, Podcast, Reply, StreamLater, User, User_episode, db
+from utils.notifications import notify_new_episode
 
 episodes_bp = Blueprint("episodes_bp", __name__)
 
@@ -285,6 +286,8 @@ def post_episode(id_podcast):
     )
     db.session.add(episode)
     db.session.commit()
+
+    notify_new_episode(episode, db.session)
 
     return jsonify(success=True, id=episode.id), 201
 
