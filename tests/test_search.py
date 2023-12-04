@@ -14,6 +14,7 @@ def app():
     with app.app_context():
         db.drop_all()
 
+
 def test_search_perfect_match(app):
     with app.app_context():
         user = User(
@@ -79,89 +80,97 @@ def test_search_perfect_match(app):
     # search podcast by name, a perfect match
     response = client.get("/search/podcast/Programming for dummies")
     assert response.status_code == 201
-    expected_response = [{
-                            "id": str(id_podcast),
-                            "id_author": str(id_user),
-                            "author": {
-                                "id": str(id_user),
-                                "username": "Carl Sagan",
-                            },
-                            "cover" : f"/podcasts/{id_podcast}/cover",
-                            "name" : "Programming for dummies",
-                            "summary" : "summary",
-                            "description" : "buenisimo",
-                            "category": None,
-                            "match_percentage": 100
-                        }]
+    expected_response = [
+        {
+            "id": str(id_podcast),
+            "id_author": str(id_user),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast}/cover",
+            "name": "Programming for dummies",
+            "summary": "summary",
+            "description": "buenisimo",
+            "category": None,
+            "match_percentage": 100,
+        }
+    ]
     assert response.get_json() == expected_response
 
     # search author by username, perfect match
     response = client.get("/search/user/Carl Sagan")
     assert response.status_code == 201
-    expected_response = [{
-                            "id": str(id_user),
-                            "username": "Carl Sagan",
-                            "email": "test@example.com",
-                            "verified": True,
-                            "match_percentage": 100
-                        }]
+    expected_response = [
+        {
+            "id": str(id_user),
+            "username": "Carl Sagan",
+            "email": "test@example.com",
+            "verified": True,
+            "match_percentage": 100,
+        }
+    ]
     assert response.get_json() == expected_response
 
     # search by podcast, partial matches
     response = client.get("/search/podcast/programin for dúmies")
     assert response.status_code == 200
     expected_response = [
-                            {
-                                "id": str(id_podcast),
-                                "id_author": str(id_user),
-                                "author": {
-                                    "id": str(id_user),
-                                    "username": "Carl Sagan",
-                                },
-                                "cover" : f"/podcasts/{id_podcast}/cover",
-                                "name" : "Programming for dummies",
-                                "summary" : "summary",
-                                "description" : "buenisimo",
-                                "category": None,
-                                "match_percentage": 86.96
-                            },
-                            {
-                                "id": str(id_podcast2),
-                                "id_author": str(id_user),
-                                "author": {
-                                    "id": str(id_user),
-                                    "username": "Carl Sagan",
-                                },
-                                "cover" : f"/podcasts/{id_podcast2}/cover",
-                                "name" : "Programming for fun",
-                                "summary" : "summary",
-                                "description" : "buenisimo",
-                                "category": None,
-                                "match_percentage": 65.00
-                            }
-                        ]
+        {
+            "id": str(id_podcast),
+            "id_author": str(id_user),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast}/cover",
+            "name": "Programming for dummies",
+            "summary": "summary",
+            "description": "buenisimo",
+            "category": None,
+            "match_percentage": 86.96,
+        },
+        {
+            "id": str(id_podcast2),
+            "id_author": str(id_user),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast2}/cover",
+            "name": "Programming for fun",
+            "summary": "summary",
+            "description": "buenisimo",
+            "category": None,
+            "match_percentage": 65.00,
+        },
+    ]
     assert response.get_json() == expected_response
 
     # search by user, partial matches
     response = client.get("/search/user/cárlös Sagan")
     assert response.status_code == 200
     expected_response = [
-                            {
-                                "id": str(id_user),
-                                "username": "Carl Sagan",
-                                "email": "test@example.com",
-                                "verified": True,
-                                "match_percentage": 83.33
-                            },
-                            {
-                                "id": str(id_user2),
-                                "username": "Carlos Latre",
-                                "email": "test2@example.com",
-                                "verified": True,
-                                "match_percentage": 66.67
-                            }
-                        ]
+        {
+            "id": str(id_user),
+            "username": "Carl Sagan",
+            "email": "test@example.com",
+            "verified": True,
+            "match_percentage": 83.33,
+        },
+        {
+            "id": str(id_user2),
+            "username": "Carlos Latre",
+            "email": "test2@example.com",
+            "verified": True,
+            "match_percentage": 66.67,
+        },
+    ]
     assert response.get_json() == expected_response
+
+    # search by podcast, no good matches found
+    response = client.get("/search/podcast/No good matches")
+    assert response.status_code == 404
 
     # search by user, no good matches found
     response = client.get("/search/user/Pirlo")

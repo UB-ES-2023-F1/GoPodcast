@@ -617,6 +617,10 @@ def test_categories(app):
     ]
     assert response.get_json() == expected_response
 
+    # Get image of a given category
+    response = client.get(f"/categories/images/Actualidad.png")
+    assert response.status_code == 200
+
     # get podcasts of a given category
     response = client.get(f"/podcasts/categories/Actualidad")
     assert response.status_code == 200
@@ -649,3 +653,7 @@ def test_categories(app):
         },
     ]
     assert response.get_json() == expected_response
+
+    # get podcasts of a given category that does not exist
+    response = client.get(f"/podcasts/categories/INVALID")
+    assert response.status_code == 401

@@ -126,12 +126,11 @@ def test_edit_delete_podcasts_episodes(app):
         },
     ]
     assert response.get_json() == expected_response
-
     podcast_data = {
         "name": "Nice podcast",
         "description": "Very nice podcast!",
         "category": "Other",
-        "cover": (b"abc", "test.jpg", "image/jpeg"),
+        "cover": (b"", "test.jpg", "image/jpeg"),
         "summary": "New summary",
     }
 
@@ -173,6 +172,10 @@ def test_edit_delete_podcasts_episodes(app):
     assert response.status_code == 201
     expected_response = {"message": "Podcast updated successfully"}
     assert response.get_json() == expected_response
+
+    # edit podcast with invalid data
+    response = client.put(f"/podcasts/{id_podcast}", data={"category": "INVALID"})
+    assert response.status_code == 401
 
     # Pocast not found
     response = client.put(f"/podcasts/00000000-0000-0000-0000-000000000000", data=podcast_data)
@@ -276,3 +279,11 @@ def test_edit_delete_podcasts_episodes(app):
     assert response.status_code == 404
     expected_response = {"success": False, "error": "Episode not found"}
     assert response.get_json() == expected_response
+
+    # Delete podcast that does not exist
+    response = client.delete(f"/podcasts/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+
+    # Delete podcast from another user
+    response = client.delete(f"/podcasts/{id_podcast3}")
+    assert response.status_code == 404

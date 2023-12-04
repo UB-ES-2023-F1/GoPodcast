@@ -201,7 +201,7 @@ def edit_podcast(id_podcast):
         else:
             podcast.name = new_name
 
-    if new_cover:
+    if new_cover is not None:
         podcast.cover = new_cover
     if new_summary:
         podcast.summary = new_summary
