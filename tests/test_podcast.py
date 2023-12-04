@@ -102,6 +102,7 @@ def test_post_episode(app):
         )
         db.session.add(user)
         db.session.commit()
+        id_author = user.id
         podcast = Podcast(
             cover=b"",
             name="podcast",
@@ -116,6 +117,7 @@ def test_post_episode(app):
         "title": "title",
         "description": "description",
         "audio": (b"", "test.mp3", "audio/mpeg"),
+        "tags": "chill#cooking"
     }
     client = app.test_client()
 
@@ -130,6 +132,23 @@ def test_post_episode(app):
     assert response.status_code == 200
     response = client.post(f"/podcasts/{id_podcast}/episodes", data=data)
     assert response.status_code == 201
+    id_created = response.get_json()["id"]
+
+    response = client.get(f"/episodes/{id_created}")
+    assert response.status_code == 200
+    expected_response = {
+        "id": id_created,
+        "description": "description",
+        "title": "title",
+        "audio": f"/episodes/{id_created}/audio",
+        "id_podcast": str(id_podcast),
+        "podcast_name": "podcast",
+        "id_author": str(id_author),
+        "author_name": "test",
+        "tags": ['chill','cooking'],
+        "comments": []
+    }
+    assert response.get_json() == expected_response
 
     # Episode with repeated combination of title and id_podcast
     data2 = {
@@ -311,6 +330,7 @@ def test_get_episodes(app):
             description="how I met your mother",
             id_podcast=podcast.id
         )
+        episode.set_tags(["hey","jude","dont"])
         db.session.add(episode)
         db.session.commit()
         id_episode1 = episode.id
@@ -332,12 +352,14 @@ def test_get_episodes(app):
             "id": str(id_episode1),
             "description": "how I met your mother",
             "title": "Episode1",
+            "tags": ["hey","jude","dont"],
             "audio": f"/episodes/{id_episode1}/audio"
         },
         {
             "id": str(id_episode2),
             "description": "how I met your mother 2",
             "title": "Episode2",
+            "tags": [],
             "audio": f"/episodes/{id_episode2}/audio"
         }
     ]

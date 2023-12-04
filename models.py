@@ -11,6 +11,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
+import json
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
@@ -75,6 +76,13 @@ class Episode(Base):
     id_podcast: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("podcast.id", ondelete="CASCADE")
     )
+    tags: Mapped[str] = mapped_column(nullable=True, default=None)
+
+    def set_tags(self, tags):
+        self.tags = json.dumps(tags)
+
+    def get_tags(self):
+        return json.loads(self.tags) if self.tags else []
 
 
 class Section(Base):

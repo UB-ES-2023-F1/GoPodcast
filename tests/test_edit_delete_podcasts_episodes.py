@@ -121,7 +121,8 @@ def test_search_perfect_match(app):
     }
 
     episode_data = {
-        "description": "I made the episode even better"
+        "description": "I made the episode even better",
+        "tags": "chill"
     }
 
     client.post(
@@ -195,12 +196,14 @@ def test_search_perfect_match(app):
                             "id": str(id_episode2),
                             "description": "how I met your mother",
                             "title": "Episode2",
+                            "tags": [],
                             "audio": f"/episodes/{id_episode2}/audio",
                         },
                         {
                             "id": str(id_episode),
                             "description": "I made the episode even better",
                             "title": "Episode1",
+                            "tags": ["chill"],
                             "audio": f"/episodes/{id_episode}/audio",
                         }]
     assert response.get_json() == expected_response
@@ -216,6 +219,7 @@ def test_search_perfect_match(app):
                             "id": str(id_episode),
                             "description": "I made the episode even better",
                             "title": "Episode1",
+                            "tags": ["chill"],
                             "audio": f"/episodes/{id_episode}/audio",
                         }]
     assert response.get_json() == expected_response

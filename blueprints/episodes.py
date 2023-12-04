@@ -40,6 +40,7 @@ def get_episode(id_episode):
                 "podcast_name": podcast.name,
                 "id_author": podcast.id_author,
                 "author_name": user.username,
+                "tags": episode.get_tags(),
                 "comments": [
                     {
                         "id": comment.id,
@@ -117,6 +118,7 @@ def get_episodes_of_podcast(id_podcast):
                     "id": episode.id,
                     "description": episode.description,
                     "title": episode.title,
+                    "tags": episode.get_tags(),
                     "audio": f"/episodes/{episode.id}/audio",
                 }
                 for episode in episodes
@@ -294,6 +296,7 @@ def post_episode(id_podcast):
     audio = request.files.get("audio").read()
     title = request.form.get("title")
     description = request.form.get("description")
+    tags_str = request.form.get("tags")
 
     if title == "":
         return jsonify({"mensaje": "title field is mandatory"}), 400
@@ -315,6 +318,10 @@ def post_episode(id_podcast):
     episode = Episode(
         audio=audio, title=title, description=description, id_podcast=id_podcast
     )
+    if tags_str:
+        tags = [tag.strip() for tag in tags_str.split("#")]
+        episode.set_tags(tags)
+
     db.session.add(episode)
     db.session.commit()
 
@@ -424,6 +431,7 @@ def edit_episode(id_episode):
         new_audio = new_audio.read()
     new_title = request.form.get("title")
     new_description = request.form.get("description")
+    new_tags = request.form.get("tags")
 
     episode = db.session.scalars(
         select(Episode).where(Episode.id == id_episode)
@@ -462,6 +470,9 @@ def edit_episode(id_episode):
         episode.audio = new_audio
     if new_description:
         episode.description = new_description
+    if new_tags:
+        tags = [tag.strip() for tag in new_tags.split("#")]
+        episode.set_tags(tags)
 
     db.session.commit()
     return jsonify({"message": "Episode updated successfully"}), 201
