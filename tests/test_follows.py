@@ -108,6 +108,10 @@ def test_post_follow(app, data):
     )
     assert response.status_code == 404
 
+    # Missing id
+    response = client.post(f"/follows", json={})
+    assert response.status_code == 400
+
 
 def test_delete_follow(app, data):
     client = app.test_client()

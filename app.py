@@ -12,13 +12,11 @@ from flask_jwt_extended import (
     set_access_cookies,
 )
 
-from models import (
-    db,
-)
-
-from blueprints.users import users_bp
-from blueprints.podcasts import podcasts_bp
 from blueprints.episodes import episodes_bp
+from blueprints.podcasts import podcasts_bp
+from blueprints.users import users_bp
+from models import db
+
 
 def create_app(testing=False):
     app = Flask(__name__)
@@ -63,7 +61,7 @@ def create_app(testing=False):
             exp_timestamp = get_jwt()["exp"]
             now = datetime.now(timezone.utc)
             target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
-            if target_timestamp > exp_timestamp:
+            if target_timestamp > exp_timestamp:  # pragma: no cover
                 access_token = create_access_token(identity=get_jwt_identity())
                 set_access_cookies(response, access_token)
             return response
@@ -71,13 +69,13 @@ def create_app(testing=False):
             return response
 
     @app.route("/")
-    def hello_world():  # put application's code here
+    def hello_world():
         return "Hello World!"
 
     return app
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     app = create_app()
     app.run()
 else:
