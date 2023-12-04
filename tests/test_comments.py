@@ -152,6 +152,7 @@ def test_get_comments(app, data):
         "podcast_name": "podcast",
         "id_author": str(data['id_user1']),
         "author_name": "test1",
+        "tags": [],
         "comments": [
         {
             "id": str(data["id_comment2"]),
