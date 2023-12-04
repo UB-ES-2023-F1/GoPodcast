@@ -466,7 +466,7 @@ def edit_episode(id_episode):
         else:
             episode.title = new_title
 
-    if new_audio:
+    if new_audio is not None:
         episode.audio = new_audio
     if new_description:
         episode.description = new_description

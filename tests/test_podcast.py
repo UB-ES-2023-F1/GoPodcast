@@ -150,6 +150,10 @@ def test_post_episode(app):
     }
     assert response.get_json() == expected_response
 
+    # Episode not found
+    response = client.get(f"/episodes/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+
     # Episode with repeated combination of title and id_podcast
     data2 = {
         "title": "title",
@@ -175,6 +179,12 @@ def test_post_episode(app):
     assert response.status_code == 400
     expected_response = {"mensaje": "title field is mandatory"}
     assert response.get_json() == expected_response
+
+    # Podcast not found
+    response = client.post(
+        f"/podcasts/00000000-0000-0000-0000-000000000000/episodes", data=data
+    )
+    assert response.status_code == 404
 
 
 def test_current_sec(app):
@@ -245,6 +255,18 @@ def test_current_sec(app):
     assert response.status_code == 201
     expected_response = {"minute": 66}
     assert response.get_json() == expected_response
+
+    # Episode not found
+    response = client.get(f"/get_current_sec/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+    response = client.put(
+        f"/update_current_sec/00000000-0000-0000-0000-000000000000", data=data
+    )
+    assert response.status_code == 404
+
+    # Missing current_sec
+    response = client.put(f"/update_current_sec/{id_episode}", data={})
+    assert response.status_code == 400
 
 
 def test_get_podcasts(app):

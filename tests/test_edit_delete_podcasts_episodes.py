@@ -83,6 +83,15 @@ def test_edit_delete_podcasts_episodes(app):
         db.session.add(episode)
         db.session.commit()
         id_episode2 = episode.id
+        episode = Episode(
+            audio=b"",
+            title="Episode3",
+            description="how I met your mother",
+            id_podcast=id_podcast3,
+        )
+        db.session.add(episode)
+        db.session.commit()
+        id_episode3 = episode.id
 
     client = app.test_client()
 
@@ -137,6 +146,8 @@ def test_edit_delete_podcasts_episodes(app):
     episode_data = {
         "description": "I made the episode even better",
         "tags": "chill",
+        "audio": (b"", "test.mp3", "audio/mpeg"),
+        "title": "Episode1B",
     }
 
     client.post("/login", json={"email": "test2@example.com", "password": "Test456"})
@@ -227,12 +238,20 @@ def test_edit_delete_podcasts_episodes(app):
         {
             "id": str(id_episode),
             "description": "I made the episode even better",
-            "title": "Episode1",
+            "title": "Episode1B",
             "tags": ["chill"],
             "audio": f"/episodes/{id_episode}/audio",
         },
     ]
     assert response.get_json() == expected_response
+
+    # edit episode not found
+    response = client.put(f"/episodes/00000000-0000-0000-0000-000000000000", data=episode_data)
+    assert response.status_code == 404
+
+    # edit episode with same title as another episode
+    response = client.put(f"/episodes/{id_episode}", data={"title": "Episode2"})
+    assert response.status_code == 400
 
     # delete episode
     response = client.delete(f"/episodes/{id_episode2}")
@@ -245,12 +264,20 @@ def test_edit_delete_podcasts_episodes(app):
         {
             "id": str(id_episode),
             "description": "I made the episode even better",
-            "title": "Episode1",
+            "title": "Episode1B",
             "tags": ["chill"],
             "audio": f"/episodes/{id_episode}/audio",
         }
     ]
     assert response.get_json() == expected_response
+
+    # delete episode that does not exist
+    response = client.delete(f"/episodes/00000000-0000-0000-0000-000000000000")
+    assert response.status_code == 404
+
+    # delete episode from another user
+    response = client.delete(f"/episodes/{id_episode3}")
+    assert response.status_code == 404
 
     # delete podcast
     response = client.delete(f"/podcasts/{id_podcast}")
