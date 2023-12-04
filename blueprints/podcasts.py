@@ -3,11 +3,9 @@ import os
 
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
-
 from Levenshtein import distance as levenshtein_distance
-from unidecode import unidecode
-
 from sqlalchemy import func, select
+from unidecode import unidecode
 
 from constants.constants import CATEGORIES
 from models import Episode, Favorite, Podcast, User, User_episode, db
@@ -78,29 +76,26 @@ def get_podcasts_created_by_user(user_id):
     # name attribute is unique, so there can only be 1 or 0 matches
     podcasts = db.session.query(Podcast).filter_by(id_author=user_id).all()
 
-    if not podcasts:
-        return jsonify({"message": "User has no podcast created"}), 201
-    else:
-        return (
-            jsonify(
-                [
-                    {
-                        "id": podcast.id,
-                        "author": {
-                            "id": podcast.id_author,
-                            "username": podcast.author.username,
-                        },
-                        "cover": f"/podcasts/{podcast.id}/cover",
-                        "name": podcast.name,
-                        "summary": podcast.summary,
-                        "description": podcast.description,
-                        "category": podcast.category,
-                    }
-                    for podcast in podcasts
-                ]
-            ),
-            200,
-        )
+    return (
+        jsonify(
+            [
+                {
+                    "id": podcast.id,
+                    "author": {
+                        "id": podcast.id_author,
+                        "username": podcast.author.username,
+                    },
+                    "cover": f"/podcasts/{podcast.id}/cover",
+                    "name": podcast.name,
+                    "summary": podcast.summary,
+                    "description": podcast.description,
+                    "category": podcast.category,
+                }
+                for podcast in podcasts
+            ]
+        ),
+        200,
+    )
 
 
 @podcasts_bp.get("/podcasts/<id_podcast>/cover")
@@ -271,7 +266,9 @@ def search_podcast(podcast_name):
         )
 
     else:  # look for partial match
-        plain_podcast_name = unidecode(podcast_name).lower() # we do not consider uppercase and accents
+        plain_podcast_name = unidecode(
+            podcast_name
+        ).lower()  # we do not consider uppercase and accents
 
         # get all the names of the database
         names_query = db.session.query(Podcast.name).all()
@@ -282,7 +279,9 @@ def search_podcast(podcast_name):
 
         names_above_thr = {}  # dict with (key,value)=(name,distance)
         for name in names:
-            plain_name = unidecode(name).lower() # we do not consider uppercase and accents
+            plain_name = unidecode(
+                name
+            ).lower()  # we do not consider uppercase and accents
             # just consider matches with normalized distance above a threshold
             d = levenshtein_distance(plain_name, plain_podcast_name) / max(
                 len(plain_name), len(plain_podcast_name)
@@ -299,27 +298,29 @@ def search_podcast(podcast_name):
         )
 
         podcast_list = [
-                    {
-                        "id": podcast.id,
-                        "id_author": podcast.id_author,
-                        "author": {
-                            "id": podcast.id_author,
-                            "username": podcast.author.username,
-                        },
-                        "cover": f"/podcasts/{podcast.id}/cover",
-                        "name": podcast.name,
-                        "summary": podcast.summary,
-                        "description": podcast.description,
-                        "category": podcast.category,
-                        "match_percentage": round(
-                            float((1 - names_above_thr[podcast.name]) * 100), 2
-                        ),
-                    }
-                    for podcast in podcasts
-                ]
-        
-        sorted_podcast_list = sorted(podcast_list, key=lambda x: x["match_percentage"], reverse=True)
-        
+            {
+                "id": podcast.id,
+                "id_author": podcast.id_author,
+                "author": {
+                    "id": podcast.id_author,
+                    "username": podcast.author.username,
+                },
+                "cover": f"/podcasts/{podcast.id}/cover",
+                "name": podcast.name,
+                "summary": podcast.summary,
+                "description": podcast.description,
+                "category": podcast.category,
+                "match_percentage": round(
+                    float((1 - names_above_thr[podcast.name]) * 100), 2
+                ),
+            }
+            for podcast in podcasts
+        ]
+
+        sorted_podcast_list = sorted(
+            podcast_list, key=lambda x: x["match_percentage"], reverse=True
+        )
+
         return jsonify(sorted_podcast_list), 200
 
 
@@ -331,7 +332,7 @@ def get_podcasts_of_category(category):
     podcasts = db.session.scalars(
         select(Podcast)
         .where(Podcast.category == category)
-        .join(User, Podcast.id_author == User.id)
+        .join(Podcast.author)
     ).all()
 
     return (
@@ -342,7 +343,7 @@ def get_podcasts_of_category(category):
                     "id_author": podcast.id_author,
                     "author": {
                         "id": podcast.id_author,
-                        "username": podcast.username,
+                        "username": podcast.author.username,
                     },
                     "cover": f"/podcasts/{podcast.id}/cover",
                     "name": podcast.name,
