@@ -31,7 +31,7 @@ def data(app):
         }
 
 
-def test_preflight(app):
+def test_preflight(app, data):
     client = app.test_client()
     res = client.options("/")
     assert res.status_code == 200

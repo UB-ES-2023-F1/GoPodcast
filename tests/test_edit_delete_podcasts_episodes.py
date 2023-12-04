@@ -2,7 +2,7 @@ import pytest
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from models import Podcast, User, Episode, db
+from models import Episode, Podcast, User, db
 
 
 @pytest.fixture
@@ -14,7 +14,8 @@ def app():
     with app.app_context():
         db.drop_all()
 
-def test_search_perfect_match(app):
+
+def test_edit_delete_podcasts_episodes(app):
     with app.app_context():
         user = User(
             email="test@example.com",
@@ -54,11 +55,21 @@ def test_search_perfect_match(app):
         db.session.add(podcast)
         db.session.commit()
         id_podcast2 = podcast.id
+        podcast = Podcast(
+            cover=b"",
+            name="Gaming for fun",
+            summary="summary",
+            description="buenisimo",
+            id_author=id_user2,
+        )
+        db.session.add(podcast)
+        db.session.commit()
+        id_podcast3 = podcast.id
         episode = Episode(
             audio=b"",
             title="Episode1",
             description="how I met your father",
-            id_podcast=id_podcast
+            id_podcast=id_podcast,
         )
         db.session.add(episode)
         db.session.commit()
@@ -67,7 +78,7 @@ def test_search_perfect_match(app):
             audio=b"",
             title="Episode2",
             description="how I met your mother",
-            id_podcast=id_podcast
+            id_podcast=id_podcast,
         )
         db.session.add(episode)
         db.session.commit()
@@ -79,55 +90,57 @@ def test_search_perfect_match(app):
     response = client.get(f"/user/{id_user}")
     assert response.status_code == 201
     expected_response = {
-                            "name": "Carl Sagan",
-                            "bio": None,
-                            "type": "author",
-                        }
+        "name": "Carl Sagan",
+        "bio": None,
+        "type": "author",
+    }
     assert response.get_json() == expected_response
 
     # get podcasts created by user
     response = client.get(f"/user/created_podcasts/{id_user}")
     assert response.status_code == 200
-    expected_response = [{
-                            "id": str(id_podcast),
-                            "author": {
-                                "id": str(id_user),
-                                "username": "Carl Sagan",
-                            },
-                            "cover" : f"/podcasts/{id_podcast}/cover",
-                            "name" : "Programming for dummies",
-                            "summary" : "summary",
-                            "description" : "buenisimo",
-                            "category": None,
-                        },
-                        {
-                            "id": str(id_podcast2),
-                            "author": {
-                                "id": str(id_user),
-                                "username": "Carl Sagan",
-                            },
-                            "cover" : f"/podcasts/{id_podcast2}/cover",
-                            "name" : "Coding for fun",
-                            "summary" : "summary",
-                            "description" : "buenisimo",
-                            "category": None,
-                        }]
+    expected_response = [
+        {
+            "id": str(id_podcast),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast}/cover",
+            "name": "Programming for dummies",
+            "summary": "summary",
+            "description": "buenisimo",
+            "category": None,
+        },
+        {
+            "id": str(id_podcast2),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast2}/cover",
+            "name": "Coding for fun",
+            "summary": "summary",
+            "description": "buenisimo",
+            "category": None,
+        },
+    ]
     assert response.get_json() == expected_response
 
     podcast_data = {
         "name": "Nice podcast",
         "description": "Very nice podcast!",
-        "category": "Other"
+        "category": "Other",
+        "cover": (b"abc", "test.jpg", "image/jpeg"),
+        "summary": "New summary",
     }
 
     episode_data = {
         "description": "I made the episode even better",
-        "tags": "chill"
+        "tags": "chill",
     }
 
-    client.post(
-        "/login", json={"email": "test2@example.com", "password": "Test456"}
-    )
+    client.post("/login", json={"email": "test2@example.com", "password": "Test456"})
 
     # try edit episode with a user that is not the author
     response = client.put(f"/episodes/{id_episode}", data=episode_data)
@@ -136,13 +149,9 @@ def test_search_perfect_match(app):
     assert response.get_json() == expected_response
 
     client.post("/logout")
-    client.post(
-        "/login", json={"email": "test@example.com", "password": "Test123"}
-    )
+    client.post("/login", json={"email": "test@example.com", "password": "Test123"})
 
-    bio_data = {
-        "bio": "Soy un crack"
-    }
+    bio_data = {"bio": "Soy un crack"}
 
     # change user's bio
     response = client.put(f"/user/bio", data=bio_data)
@@ -153,10 +162,10 @@ def test_search_perfect_match(app):
     response = client.get(f"/user/{id_user}")
     assert response.status_code == 201
     expected_response = {
-                            "name": "Carl Sagan",
-                            "bio": "Soy un crack",
-                            "type": "author",
-                        }
+        "name": "Carl Sagan",
+        "bio": "Soy un crack",
+        "type": "author",
+    }
     assert response.get_json() == expected_response
 
     # edit podcast
@@ -164,6 +173,18 @@ def test_search_perfect_match(app):
     assert response.status_code == 201
     expected_response = {"message": "Podcast updated successfully"}
     assert response.get_json() == expected_response
+
+    # Pocast not found
+    response = client.put(f"/podcasts/00000000-0000-0000-0000-000000000000", data=podcast_data)
+    assert response.status_code == 404
+
+    # Podcast from another user
+    response = client.put(f"/podcasts/{id_podcast3}", data=podcast_data)
+    assert response.status_code == 404
+
+    # Podcast name already exists
+    response = client.put(f"/podcasts/{id_podcast2}", data=podcast_data)
+    assert response.status_code == 400
 
     # edit episode
     response = client.put(f"/episodes/{id_episode}", data=episode_data)
@@ -175,37 +196,39 @@ def test_search_perfect_match(app):
     response = client.get(f"/podcasts/{id_podcast}")
     assert response.status_code == 201
     expected_response = {
-                        "id": str(id_podcast),
-                        "description": "Very nice podcast!",
-                        "name": "Nice podcast",
-                        "summary": "summary",
-                        "cover": f"/podcasts/{id_podcast}/cover",
-                        "id_author": str(id_user),
-                        "author": {
-                            "id": str(id_user),
-                            "username": "Carl Sagan",
-                        },
-                        "category": "Other",
-                    }
+        "id": str(id_podcast),
+        "description": "Very nice podcast!",
+        "name": "Nice podcast",
+        "summary": "New summary",
+        "cover": f"/podcasts/{id_podcast}/cover",
+        "id_author": str(id_user),
+        "author": {
+            "id": str(id_user),
+            "username": "Carl Sagan",
+        },
+        "category": "Other",
+    }
     assert response.get_json() == expected_response
 
     # check if changes in episode have been successfully applied
     response = client.get(f"/podcasts/{id_podcast}/episodes")
     assert response.status_code == 200
-    expected_response = [{
-                            "id": str(id_episode2),
-                            "description": "how I met your mother",
-                            "title": "Episode2",
-                            "tags": [],
-                            "audio": f"/episodes/{id_episode2}/audio",
-                        },
-                        {
-                            "id": str(id_episode),
-                            "description": "I made the episode even better",
-                            "title": "Episode1",
-                            "tags": ["chill"],
-                            "audio": f"/episodes/{id_episode}/audio",
-                        }]
+    expected_response = [
+        {
+            "id": str(id_episode2),
+            "description": "how I met your mother",
+            "title": "Episode2",
+            "tags": [],
+            "audio": f"/episodes/{id_episode2}/audio",
+        },
+        {
+            "id": str(id_episode),
+            "description": "I made the episode even better",
+            "title": "Episode1",
+            "tags": ["chill"],
+            "audio": f"/episodes/{id_episode}/audio",
+        },
+    ]
     assert response.get_json() == expected_response
 
     # delete episode
@@ -215,13 +238,15 @@ def test_search_perfect_match(app):
     # check if episode has been deleted
     response = client.get(f"/podcasts/{id_podcast}/episodes")
     assert response.status_code == 200
-    expected_response = [{
-                            "id": str(id_episode),
-                            "description": "I made the episode even better",
-                            "title": "Episode1",
-                            "tags": ["chill"],
-                            "audio": f"/episodes/{id_episode}/audio",
-                        }]
+    expected_response = [
+        {
+            "id": str(id_episode),
+            "description": "I made the episode even better",
+            "title": "Episode1",
+            "tags": ["chill"],
+            "audio": f"/episodes/{id_episode}/audio",
+        }
+    ]
     assert response.get_json() == expected_response
 
     # delete podcast
@@ -231,18 +256,20 @@ def test_search_perfect_match(app):
     # check if podcast and the other episode have been deleted
     response = client.get(f"/user/created_podcasts/{id_user}")
     assert response.status_code == 200
-    expected_response = [{
-                            "id": str(id_podcast2),
-                            "author": {
-                                "id": str(id_user),
-                                "username": "Carl Sagan",
-                            },
-                            "cover" : f"/podcasts/{id_podcast2}/cover",
-                            "name" : "Coding for fun",
-                            "summary" : "summary",
-                            "description" : "buenisimo",
-                            "category": None,
-                        }]
+    expected_response = [
+        {
+            "id": str(id_podcast2),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast2}/cover",
+            "name": "Coding for fun",
+            "summary": "summary",
+            "description": "buenisimo",
+            "category": None,
+        }
+    ]
     assert response.get_json() == expected_response
 
     response = client.get(f"/episodes/{id_episode}/audio")
