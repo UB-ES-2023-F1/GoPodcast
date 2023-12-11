@@ -22,6 +22,7 @@ def test_search_perfect_match(app):
             username="Carl Sagan",
             password=generate_password_hash("Test1234"),
             verified=True,
+            image=b""
         )
         db.session.add(user)
         db.session.commit()
@@ -104,6 +105,7 @@ def test_search_perfect_match(app):
     expected_response = [
         {
             "id": str(id_user),
+            "image_url": f"/users/{id_user}/image",
             "username": "Carl Sagan",
             "email": "test@example.com",
             "verified": True,
@@ -153,6 +155,7 @@ def test_search_perfect_match(app):
     expected_response = [
         {
             "id": str(id_user),
+            "image_url": f"/users/{id_user}/image",
             "username": "Carl Sagan",
             "email": "test@example.com",
             "verified": True,
@@ -160,6 +163,7 @@ def test_search_perfect_match(app):
         },
         {
             "id": str(id_user2),
+            "image_url": f"/users/{id_user2}/image",
             "username": "Carlos Latre",
             "email": "test2@example.com",
             "verified": True,
@@ -177,3 +181,12 @@ def test_search_perfect_match(app):
     assert response.status_code == 404
     expected_response = {"message": "No good matches found"}
     assert response.get_json() == expected_response
+
+    # Get image profile of the searched users
+    response = client.get(f"/users/{id_user}/image")
+    assert response.status_code == 200
+    assert response.data == b""
+
+    # Image from non-existent user
+    response = client.get(f"/users/00000000-0000-0000-0000-000000000000/image")
+    assert response.status_code == 404

@@ -648,19 +648,6 @@ def test_categories(app):
     assert response.status_code == 200
     expected_response = [
         {
-            "id": str(id_podcast1),
-            "id_author": str(id_user),
-            "author": {
-                "id": str(id_user),
-                "username": "Carl Sagan",
-            },
-            "cover": f"/podcasts/{id_podcast1}/cover",
-            "name": "podcast",
-            "summary": "summary",
-            "description": "description",
-            "category": "Actualidad",
-        },
-        {
             "id": str(id_podcast2),
             "id_author": str(id_user),
             "author": {
@@ -673,6 +660,19 @@ def test_categories(app):
             "description": "description2",
             "category": "Actualidad",
         },
+        {
+            "id": str(id_podcast1),
+            "id_author": str(id_user),
+            "author": {
+                "id": str(id_user),
+                "username": "Carl Sagan",
+            },
+            "cover": f"/podcasts/{id_podcast1}/cover",
+            "name": "podcast",
+            "summary": "summary",
+            "description": "description",
+            "category": "Actualidad",
+        }
     ]
     assert response.get_json() == expected_response
 

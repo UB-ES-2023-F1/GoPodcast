@@ -100,6 +100,7 @@ def test_edit_delete_podcasts_episodes(app):
     assert response.status_code == 201
     expected_response = {
         "name": "Carl Sagan",
+        "image_url": f"/users/{id_user}/image",
         "bio": None,
         "type": "author",
     }
@@ -173,6 +174,7 @@ def test_edit_delete_podcasts_episodes(app):
     assert response.status_code == 201
     expected_response = {
         "name": "Carl Sagan",
+        "image_url": f"/users/{id_user}/image",
         "bio": "Soy un crack",
         "type": "author",
     }

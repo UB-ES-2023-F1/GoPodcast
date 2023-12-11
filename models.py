@@ -34,6 +34,7 @@ class User(Base):
     password: Mapped[str]
     verified: Mapped[bool] = mapped_column(default=False)
     bio: Mapped[str] = mapped_column(nullable=True, default=None)
+    image: Mapped[bytes] = mapped_column(BYTEA, nullable=True, default=None)
 
 
 class Podcast(Base):
