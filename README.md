@@ -1,4 +1,4 @@
 # GoPodcastAPI
 
-[Link Producció](https://gopodcastapi.azurewebsites.net) <br>
+[Link Producció](https://api.gopodcast.me) <br>
 [Link Development](https://gopodcastapidev.azurewebsites.net)
