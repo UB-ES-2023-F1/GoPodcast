@@ -1,6 +1,7 @@
 import re
+import io
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -22,11 +23,10 @@ users_bp = Blueprint("users_bp", __name__)
 
 @users_bp.post("/user")
 def create_user():
-    data_dict = request.get_json()
-
-    username = data_dict["username"]
-    email = data_dict["email"]
-    password = data_dict["password"]
+    username = request.form.get("username")
+    image = request.files.get("image").read()
+    email = request.form.get("email")
+    password = request.form.get("password")
 
     if not username or not email:
         return (
@@ -64,7 +64,10 @@ def create_user():
 
     # Create a new user
     new_user = User(
-        username=username, email=email, password=generate_password_hash(password)
+        username=username,
+        image=image,
+        email=email,
+        password=generate_password_hash(password)
     )
     db.session.add(new_user)
     db.session.commit()
@@ -118,6 +121,7 @@ def search_user(username):
                 [
                     {
                         "id": user.id,
+                        "image_url": f"/users/{user.id}/image",
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
@@ -159,6 +163,7 @@ def search_user(username):
         user_list = [
                     {
                         "id": user.id,
+                        "image_url": f"/users/{user.id}/image",
                         "username": user.username,
                         "email": user.email,
                         "verified": user.verified,
@@ -188,6 +193,7 @@ def get_user(user_id):
         jsonify(
             {
                 "name": user.username,
+                "image_url": f"/users/{user.id}/image",
                 "bio": user.bio,
                 "type": user_type,
             }
@@ -195,6 +201,14 @@ def get_user(user_id):
         201,
     )
 
+@users_bp.get("/users/<id_user>/image")
+def get_podcast_cover(id_user):
+    user = db.session.scalars(
+        select(User).where(User.id == id_user)
+    ).first()
+    if not user:
+        return jsonify({"success": False, "error": "User not found"}), 404
+    return send_file(io.BytesIO(user.image), mimetype="image/jpeg")
 
 @users_bp.put("/user/bio")
 @jwt_required()
