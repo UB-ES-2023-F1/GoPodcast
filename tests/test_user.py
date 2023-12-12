@@ -22,12 +22,12 @@ def test_create_user(client):
 
     data = {
         "username": "SusanaOria2",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "Contra1segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
-
+    response = client.post('http://127.0.0.1:5000/user', data=data)
     # Assert the status code
     assert response.status_code == 201
     # Assert the response content
@@ -41,11 +41,12 @@ def test_create_user(client):
 
     data = {
         "username": "",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "Contra1segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -60,11 +61,12 @@ def test_create_user(client):
 
     data = {
         "username": "SusanaOria2",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susanaaaaa@gmail.com",
         "password": "Contra2segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -78,11 +80,12 @@ def test_create_user(client):
 
     data = {
         "username": "PedroOrio",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "Contra2segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -96,11 +99,12 @@ def test_create_user(client):
 
     data = {
         "username": "PedroOrio",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susangmail.com",
         "password": "Contra2segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -110,11 +114,12 @@ def test_create_user(client):
 
     data = {
         "username": "PedroOrio",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmailcom",
         "password": "Contra2segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -124,11 +129,12 @@ def test_create_user(client):
 
     data = {
         "username": "PedroOrio",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "@gmail.com",
         "password": "Contra2segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -142,11 +148,12 @@ def test_create_user(client):
 
     data = {
         "username": "SusanaOria2",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "Ca1"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -158,11 +165,12 @@ def test_create_user(client):
 
     data = {
         "username": "SusanaOria2",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "Contrasegura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -174,11 +182,12 @@ def test_create_user(client):
 
     data = {
         "username": "SusanaOria2",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "contra1segura"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -190,11 +199,12 @@ def test_create_user(client):
 
     data = {
         "username": "SusanaOria2",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "susan@gmail.com",
         "password": "1234567"
     }
 
-    response = client.post('http://127.0.0.1:5000/user', json=data)
+    response = client.post('http://127.0.0.1:5000/user', data=data)
 
     # Assert the status code
     assert response.status_code == 400
@@ -209,11 +219,12 @@ def test_auth(client):
 
     data = {
         "username": "test",
+        "image": (b"", "test.jpg", "image/jpeg"),
         "email": "test@example.com",
         "password": "Test1234"
     }
 
-    response = client.post('/user', json=data)
+    response = client.post('/user', data=data)
 
     # Wrong login details
     response = client.post('/login', json={"email": "test@example.com",
@@ -221,7 +232,8 @@ def test_auth(client):
     assert response.status_code == 401
 
     # Correct login details
-    response = client.post('/login', json=data)
+    response = client.post('/login', json={"email": "test@example.com",
+                                           "password": "Test1234"})
     assert response.status_code == 200
 
     # Access to protected route with auth

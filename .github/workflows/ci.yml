@@ -60,4 +60,5 @@ jobs:
       - name: Run end-to-end tests
         run: |
           pip install pytest
-          pytest
+          pip install pytest-cov
+          pytest --cov=. tests/

@@ -124,6 +124,10 @@ def test_post_stream_later(app, data):
     )
     assert response.status_code == 404
 
+    # Missing id
+    response = client.post("/stream_later", json={})
+    assert response.status_code == 400
+
 
 def test_delete_stream_later(app, data):
     client = app.test_client()

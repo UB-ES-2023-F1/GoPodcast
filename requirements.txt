@@ -6,3 +6,4 @@ pytest
 flask-jwt-extended
 flask-cors
 python-Levenshtein
+unidecode

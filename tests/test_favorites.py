@@ -134,6 +134,10 @@ def test_post_favorites(app, data):
     )
     assert response.status_code == 404
 
+    # Missing id
+    response = client.post("/favorites", json={})
+    assert response.status_code == 400
+
 
 def test_delete_favorites(app, data):
     client = app.test_client()
