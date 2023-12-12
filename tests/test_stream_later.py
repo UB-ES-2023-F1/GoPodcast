@@ -111,12 +111,12 @@ def test_get_stream_later_by_id(app, data):
         "/login", json={"email": "test@example.com", "password": "Test1234"}
     )
     assert response.status_code == 200
-    expected_response = { "is_liked0": True }
+    expected_response = { "is_liked": True }
     response = client.get(f"/stream_later/{data['id_episode1']}")
     assert response.status_code == 200
     assert response.get_json() == expected_response
 
-    expected_response = { "is_liked0": False }
+    expected_response = { "is_liked": False }
     response = client.get(f"/stream_later/{data['id_episode3']}")
     assert response.status_code == 200
     assert response.get_json() == expected_response
