@@ -70,7 +70,7 @@ def create_app(testing=False):
 
     @app.route("/")
     def hello_world():
-        return "Hello World!"
+        return os.getenv("FRONTEND_URL")
 
     return app
 
