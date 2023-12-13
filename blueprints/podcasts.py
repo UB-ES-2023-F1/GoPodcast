@@ -474,6 +474,31 @@ def get_favorites():
     )
 
 
+@podcasts_bp.get("/favorites/<id_podcast>")
+@jwt_required()
+def get_favorite(id_podcast):
+    current_user_id = get_jwt_identity()
+    favorite = db.session.scalars(
+        select(Favorite)
+        .filter_by(id_user=current_user_id)
+        .filter_by(id_podcast=id_podcast)
+    ).first()
+    if favorite:
+        return (
+            {
+                "is_favorite": True
+            },
+            200,
+        )
+    else:
+        return (
+            {
+                "is_favorite": False
+            },
+            200,
+        )
+
+
 @podcasts_bp.post("/favorites")
 @jwt_required()
 def post_favorites():

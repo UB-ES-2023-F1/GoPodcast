@@ -36,6 +36,8 @@ def create_app(testing=False):
         origins=[
             "http://localhost:5173",
             "http://127.0.0.1:5173",
+            "https://gopodcast.me",
+            "https://www.gopodcast.me",
             os.getenv("FRONTEND_URL"),
         ],
         supports_credentials=True,

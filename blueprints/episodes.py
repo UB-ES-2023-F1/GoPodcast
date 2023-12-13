@@ -368,7 +368,8 @@ def update_current_sec(id_episode):
             )
 
     else:
-        return jsonify({"error": "Specify the current minute"}), 400
+        return jsonify({"error": "Specify the current minute", 
+                        "current_sec": new_current_sec}), 400
 
 
 @episodes_bp.get("/get_current_sec/<id_episode>")
@@ -499,6 +500,31 @@ def get_stream_later():
         ),
         200,
     )
+
+
+@episodes_bp.get("/stream_later/<id_episode>")
+@jwt_required()
+def get_stream_later_by_id(id_episode):
+    current_user_id = get_jwt_identity()
+    stream_later = db.session.scalars(
+        select(StreamLater)
+        .filter_by(id_user=current_user_id)
+        .filter_by(id_episode=id_episode)
+    ).first()
+    if stream_later:
+        return (
+            {
+                "is_liked": True
+            },
+            200,
+        )
+    else:
+        return (
+            {
+                "is_liked": False
+            },
+            200,
+        )
 
 
 @episodes_bp.post("/stream_later")
