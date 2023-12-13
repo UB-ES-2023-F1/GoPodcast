@@ -335,7 +335,7 @@ def post_episode(id_podcast):
 def update_current_sec(id_episode):
     current_user_id = get_jwt_identity()
 
-    new_current_sec = request.form.get("current_sec")
+    new_current_sec = request.get_json().get("current_sec")
 
     if new_current_sec is not None:
         episode = db.session.scalars(
@@ -353,7 +353,9 @@ def update_current_sec(id_episode):
         if user_episode:
             user_episode.current_sec = new_current_sec
             db.session.commit()
-            return jsonify({"message": "Current minute updated successfully"}), 201
+            return jsonify({"message": "Current minute updated successfully",
+                            "current_sec": new_current_sec},
+            ), 201
         else:  # first time user plays the episode
             new_user_episode = User_episode(
                 id_episode=id_episode,
@@ -363,7 +365,9 @@ def update_current_sec(id_episode):
             db.session.add(new_user_episode)
             db.session.commit()
             return (
-                jsonify({"message": "Current minute saved for new episode played"}),
+                jsonify({"message": "Current minute saved for new episode played", 
+                         
+                         "current_sec": new_current_sec}),
                 201,
             )
 
@@ -440,7 +444,7 @@ def edit_episode(id_episode):
 
     if not episode:
         return jsonify({"error": "Episode not found"}), 404
-
+    
     podcast = db.session.scalars(
         select(Podcast).where(Podcast.id == episode.id_podcast)
     ).first()
