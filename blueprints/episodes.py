@@ -335,7 +335,8 @@ def post_episode(id_podcast):
 def update_current_sec(id_episode):
     current_user_id = get_jwt_identity()
 
-    new_current_sec = request.get_json().get("current_sec")
+    data = request.get_json()
+    new_current_sec = data["current_sec"]
 
     if new_current_sec is not None:
         episode = db.session.scalars(
