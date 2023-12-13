@@ -63,7 +63,6 @@ def data(app):
             "id_podcast3": podcast3.id,
         }
 
-
 def test_get_favorites(app, data):
     client = app.test_client()
 
@@ -105,6 +104,29 @@ def test_get_favorites(app, data):
         },
     ]
     response = client.get("/favorites")
+    assert response.status_code == 200
+    assert response.json == expected_response
+
+
+def test_get_favorite_by_id(app, data):
+    client = app.test_client()
+
+    # Unauthenticated
+    response = client.get(f"/favorites/{data['id_podcast1']}")
+    assert response.status_code == 401
+
+    # Authenticated
+    response = client.post(
+        "/login", json={"email": "test@example.com", "password": "Test1234"}
+    )
+    assert response.status_code == 200
+    expected_response = { "is_favorite": True }
+    response = client.get(f"/favorites/{data['id_podcast1']}")
+    assert response.status_code == 200
+    assert response.json == expected_response
+
+    expected_response = { "is_favorite": False }
+    response = client.get(f"/favorites/{data['id_podcast3']}")
     assert response.status_code == 200
     assert response.json == expected_response
 
