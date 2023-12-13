@@ -368,7 +368,8 @@ def update_current_sec(id_episode):
             )
 
     else:
-        return jsonify({"error": "Specify the current minute"}), 400
+        return jsonify({"error": "Specify the current minute", 
+                        "current_sec": new_current_sec}), 400
 
 
 @episodes_bp.get("/get_current_sec/<id_episode>")

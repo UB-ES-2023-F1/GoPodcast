@@ -91,7 +91,7 @@ def login_user():
             401,
         )
     access_token = create_access_token(identity=user.id)
-    resp = jsonify({"success": True})
+    resp = jsonify({"success": True, "access_token": access_token})
     set_access_cookies(resp, access_token)
     return resp, 200
 
