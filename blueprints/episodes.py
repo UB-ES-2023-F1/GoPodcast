@@ -3,7 +3,7 @@ import io
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import select
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import contains_eager, load_only
 
 from models import Comment, Episode, Podcast, Reply, StreamLater, User, User_episode, db
 from utils.notifications import notify_new_episode
@@ -21,13 +21,17 @@ def get_episode(id_episode):
     podcast = db.session.scalars(
         select(Podcast).where(Podcast.id == episode.id_podcast)
     ).first()
-    comments = db.session.scalars(
-        select(Comment)
-        .where(Comment.id_episode == id_episode)
-        .order_by(Comment.created_at)
-        .join(Comment.user)
-        .outerjoin(Comment.replies)
-    ).unique().all()
+    comments = (
+        db.session.scalars(
+            select(Comment)
+            .where(Comment.id_episode == id_episode)
+            .order_by(Comment.created_at)
+            .join(Comment.user)
+            .outerjoin(Comment.replies)
+        )
+        .unique()
+        .all()
+    )
     user = db.session.scalars(select(User).where(User.id == podcast.id_author)).first()
     return (
         jsonify(
@@ -68,11 +72,12 @@ def get_episode(id_episode):
                         ],
                     }
                     for comment in comments
-                ]
+                ],
             }
         ),
         200,
     )
+
 
 @episodes_bp.get("/episodes/<id_episode>/comments/<id_comment>/replies")
 def get_replies_of_comment(id_episode, id_comment):
@@ -106,10 +111,21 @@ def get_replies_of_comment(id_episode, id_comment):
         200,
     )
 
+
 @episodes_bp.get("/podcasts/<id_podcast>/episodes")
 def get_episodes_of_podcast(id_podcast):
     episodes = db.session.scalars(
-        select(Episode).where(Episode.id_podcast == id_podcast)
+        select(Episode)
+        .options(
+            load_only(
+                Episode.id,
+                Episode.title,
+                Episode.description,
+                Episode.id_podcast,
+                Episode.tags,
+            )
+        )
+        .where(Episode.id_podcast == id_podcast)
     ).all()
     return (
         jsonify(
@@ -368,8 +384,12 @@ def update_current_sec(id_episode):
             )
 
     else:
-        return jsonify({"error": "Specify the current minute", 
-                        "current_sec": new_current_sec}), 400
+        return (
+            jsonify(
+                {"error": "Specify the current minute", "current_sec": new_current_sec}
+            ),
+            400,
+        )
 
 
 @episodes_bp.get("/get_current_sec/<id_episode>")
@@ -513,16 +533,12 @@ def get_stream_later_by_id(id_episode):
     ).first()
     if stream_later:
         return (
-            {
-                "is_liked": True
-            },
+            {"is_liked": True},
             200,
         )
     else:
         return (
-            {
-                "is_liked": False
-            },
+            {"is_liked": False},
             200,
         )
 
