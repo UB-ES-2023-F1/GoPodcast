@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from Levenshtein import distance as levenshtein_distance
 from sqlalchemy import func, select
+from sqlalchemy.orm import undefer
 from unidecode import unidecode
 
 from constants.constants import CATEGORIES
@@ -101,7 +102,7 @@ def get_podcasts_created_by_user(user_id):
 @podcasts_bp.get("/podcasts/<id_podcast>/cover")
 def get_podcast_cover(id_podcast):
     podcast = db.session.scalars(
-        select(Podcast).where(Podcast.id == id_podcast)
+        select(Podcast).options(undefer(Podcast.cover)).where(Podcast.id == id_podcast)
     ).first()
     if not podcast:
         return jsonify({"success": False, "error": "Podcast not found"}), 404

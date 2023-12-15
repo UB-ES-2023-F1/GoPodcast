@@ -10,6 +10,7 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
 )
 from Levenshtein import distance as levenshtein_distance
+from sqlalchemy.orm import undefer
 from unidecode import unidecode
 
 from sqlalchemy import select
@@ -204,7 +205,7 @@ def get_user(user_id):
 @users_bp.get("/users/<id_user>/image")
 def get_podcast_cover(id_user):
     user = db.session.scalars(
-        select(User).where(User.id == id_user)
+        select(User).options(undefer(User.image)).where(User.id == id_user)
     ).first()
     if not user:
         return jsonify({"success": False, "error": "User not found"}), 404

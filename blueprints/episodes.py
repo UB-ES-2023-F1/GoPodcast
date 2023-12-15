@@ -3,7 +3,7 @@ import io
 from flask import Blueprint, jsonify, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import select
-from sqlalchemy.orm import contains_eager, load_only
+from sqlalchemy.orm import undefer
 
 from models import Comment, Episode, Podcast, Reply, StreamLater, User, User_episode, db
 from utils.notifications import notify_new_episode
@@ -115,17 +115,7 @@ def get_replies_of_comment(id_episode, id_comment):
 @episodes_bp.get("/podcasts/<id_podcast>/episodes")
 def get_episodes_of_podcast(id_podcast):
     episodes = db.session.scalars(
-        select(Episode)
-        .options(
-            load_only(
-                Episode.id,
-                Episode.title,
-                Episode.description,
-                Episode.id_podcast,
-                Episode.tags,
-            )
-        )
-        .where(Episode.id_podcast == id_podcast)
+        select(Episode).where(Episode.id_podcast == id_podcast)
     ).all()
     return (
         jsonify(
@@ -147,7 +137,7 @@ def get_episodes_of_podcast(id_podcast):
 @episodes_bp.get("/episodes/<id_episode>/audio")
 def get_episode_audio(id_episode):
     episode = db.session.scalars(
-        select(Episode).where(Episode.id == id_episode)
+        select(Episode).options(undefer(Episode.audio)).where(Episode.id == id_episode)
     ).first()
     if not episode:
         return jsonify({"success": False, "error": "Episode not found"}), 404
