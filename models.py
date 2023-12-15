@@ -34,7 +34,7 @@ class User(Base):
     password: Mapped[str]
     verified: Mapped[bool] = mapped_column(default=False)
     bio: Mapped[str] = mapped_column(nullable=True, default=None)
-    image: Mapped[bytes] = mapped_column(BYTEA, nullable=True, default=None)
+    image: Mapped[bytes] = mapped_column(BYTEA, nullable=True, default=None, deferred=True)
 
 
 class Podcast(Base):
@@ -48,7 +48,7 @@ class Podcast(Base):
         unique=True,
         nullable=False,
     )
-    cover: Mapped[bytes] = mapped_column(BYTEA)
+    cover: Mapped[bytes] = mapped_column(BYTEA, deferred=True)
     name: Mapped[str] = mapped_column(unique=True)
     summary: Mapped[str]
     description: Mapped[str]
@@ -71,7 +71,7 @@ class Episode(Base):
         nullable=False,
     )
 
-    audio: Mapped[bytes] = mapped_column(BYTEA)
+    audio: Mapped[bytes] = mapped_column(BYTEA, deferred=True)
     title: Mapped[str]
     description: Mapped[str]
     id_podcast: Mapped[uuid.UUID] = mapped_column(
